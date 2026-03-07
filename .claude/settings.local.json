@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"^[0-9]*:.*//.*cdn\\\\.\\\\|^[0-9]*:.*//.*\\\\\\(function\")",
+      "Bash(awk -F: 'NR>1400 && NR<5500')",
+      "Bash(awk 'NR>=1448 && NR<=5408' \"c:\\\\Users\\\\KCM\\\\Documents\\\\GitHub\\\\excel\\\\체납대장_워크스테이션_v2.1.3.1.html\")",
+      "Bash(awk 'NR>=800 && NR<=1450' \"c:\\\\Users\\\\KCM\\\\Documents\\\\GitHub\\\\excel\\\\체납대장_워크스테이션_v2.1.3.1.html\")",
+      "Bash(awk 'NR>=1448' \"c:\\\\Users\\\\KCM\\\\Documents\\\\GitHub\\\\excel\\\\체납대장_워크스테이션_v2.1.3.1.html\")",
+      "Bash(node -e \" const lines = require\\(''fs''\\).readFileSync\\(''/dev/stdin'', ''utf8''\\); // Check for basic JS syntax issues - unclosed braces etc let open = 0, close = 0; lines.split\\(''\\\\n''\\).forEach\\(\\(l, i\\) => { // skip minified lines \\(very long\\) if \\(l.length > 500\\) return; for \\(const c of l\\) { if \\(c === ''{''\\) open++; if \\(c === ''}''\\) close++; } }\\); console.log\\(''{ count:'', open, ''} count:'', close, ''diff:'', open - close\\); \")",
+      "Bash(node -e \":*)",
+      "Read(//c/Users/KCM/Documents/GitHub/excel/**)"
+    ]
+  }
+}
