@@ -3255,10 +3255,16 @@ function renderColumnVisibilityDropdown() {
                 const startIdx = (currentPage - 1) * ROWS_PER_PAGE;
                 const pageData = filteredDataStore.slice(startIdx, startIdx + ROWS_PER_PAGE);
                 const body = document.getElementById('tbody-rows'); body.innerHTML = '';
-                if (totalItems === 0) { body.innerHTML = "<tr><td colspan='" + (headerStore.length + 2) + "' class='p-10 text-center text-slate-400 font-bold'>결과가 없습니다.</td></tr>"; } 
+                // 현재 시트의 변경사항 Map 생성 (O(1) 조회용 - 선형 탐색 제거)
+                const cellChangesMap = new Map();
+                for (let _j = 0; _j < cellChanges.length; _j++) {
+                    const _ch = cellChanges[_j];
+                    if (_ch.sheetName === currentActiveSheetName) cellChangesMap.set(_ch.ref, _ch);
+                }
+                if (totalItems === 0) { body.innerHTML = "<tr><td colspan='" + (headerStore.length + 2) + "' class='p-10 text-center text-slate-400 font-bold'>결과가 없습니다.</td></tr>"; }
                 else {
                     const frag = document.createDocumentFragment();
-                    let tooltipTimeout; 
+                    let tooltipTimeout;
                     for(let rowIdx=0; rowIdx<pageData.length; rowIdx++) {
                         const row = pageData[rowIdx];
                         const tr = document.createElement('tr'); tr.className = "bg-white hover:bg-slate-50 transition-colors group dark:bg-slate-800 dark:hover:bg-slate-700";
@@ -3314,10 +3320,7 @@ function renderColumnVisibilityDropdown() {
                                 row[i] = cInfo;
                             }
                             td.setAttribute('data-ref', cInfo.ref);
-                            let mod = null;
-                            for(let j=0; j<cellChanges.length; j++) {
-                                if(cellChanges[j].sheetName === currentActiveSheetName && cellChanges[j].ref === cInfo.ref) { mod = cellChanges[j]; break; }
-                            }
+                            let mod = cellChangesMap.get(cInfo.ref) || null;
                             if (mod) td.classList.add('is-modified');
                             td.textContent = mod ? mod.value : cInfo.value;
                             if (cInfo.style.strike) { td.style.textDecoration = "line-through"; td.style.textDecorationColor = "#ef4444"; td.style.color = "#94a3b8"; }
@@ -3572,6 +3575,86 @@ function renderColumnVisibilityDropdown() {
             // DOMParser/XMLSerializer 없이 셀 XML을 문자열로 직접 생성
             // ==========================================
 
+            // ── 배치 셀 교체: 단일 패스로 여러 셀 동시 처리 (O(n) vs O(n²)) ──
+            // changes: [{ref, value, formula}, ...] 배열
+            // 반환: { xml: 교체된 XML 문자열, found: 교체된 ref Set }
+            function replaceCellsInSheetBatch(sx, changes) {
+                if (!changes || changes.length === 0) return { xml: sx, found: new Set() };
+
+                // ref → change 맵 구성
+                var changeMap = Object.create(null);
+                for (var _i = 0; _i < changes.length; _i++) changeMap[changes[_i].ref] = changes[_i];
+
+                var found = new Set();
+                var parts = [];
+                var pos = 0;
+
+                // XML 단일 패스
+                while (pos < sx.length) {
+                    // 다음 '<' 찾기
+                    var ltPos = sx.indexOf('<', pos);
+                    if (ltPos === -1) { parts.push(sx.slice(pos)); break; }
+
+                    // 셀 태그인지 확인: <c ... 또는 <xx:c ...
+                    var afterLt = sx.slice(ltPos + 1, ltPos + 30);
+                    var mTag = afterLt.match(/^(([a-zA-Z0-9_]+):)?c[\s\/>]/);
+                    if (!mTag) { parts.push(sx.slice(pos, ltPos + 1)); pos = ltPos + 1; continue; }
+
+                    // openEnd 찾기
+                    var openEnd = sx.indexOf('>', ltPos);
+                    if (openEnd === -1) { parts.push(sx.slice(pos)); break; }
+
+                    var openTag = sx.slice(ltPos, openEnd + 1);
+                    var rMatch = openTag.match(/\br="([^"]+)"/);
+                    if (!rMatch || !changeMap[rMatch[1]]) {
+                        // 교체 대상 아님 → 건너뜀
+                        parts.push(sx.slice(pos, ltPos + 1)); pos = ltPos + 1; continue;
+                    }
+
+                    var ref = rMatch[1];
+                    var ch = changeMap[ref];
+                    var px = (mTag[2]) ? (mTag[2] + ':') : '';
+                    var tagName = px + 'c';
+                    var isSelfClose = openTag.slice(-2) === '/>';
+
+                    // 셀 끝 위치 결정
+                    var cellEnd;
+                    if (isSelfClose) {
+                        cellEnd = openEnd + 1;
+                    } else {
+                        var closeTag = '</' + tagName + '>';
+                        var cp = sx.indexOf(closeTag, openEnd);
+                        if (cp === -1) { parts.push(sx.slice(pos, ltPos + 1)); pos = ltPos + 1; continue; }
+                        cellEnd = cp + closeTag.length;
+                    }
+
+                    // 교체 XML 빌드
+                    var v = String(ch.value || '').trim();
+                    var nv = Number(v.replace(/,/g, ''));
+                    var isNum = v !== '' && !isNaN(nv) && isFinite(nv);
+                    var newOpenTag = isSelfClose ? openTag.slice(0, -2) + '>' : openTag;
+                    var inner;
+                    if (ch.formula) {
+                        newOpenTag = newOpenTag.replace(/\s+t="[^"]*"/, '');
+                        inner = '<'+px+'f>'+ch.formula+'</'+px+'f><'+px+'v>'+(isNum?nv:v)+'</'+px+'v>';
+                    } else if (isNum) {
+                        newOpenTag = newOpenTag.replace(/\s+t="[^"]*"/, '');
+                        inner = '<'+px+'v>'+nv+'</'+px+'v>';
+                    } else {
+                        newOpenTag = newOpenTag.replace(/\s+t="[^"]*"/, '').slice(0,-1) + ' t="inlineStr">';
+                        var esc = v.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                        inner = '<'+px+'is><'+px+'t>'+esc+'</'+px+'t></'+px+'is>';
+                    }
+
+                    parts.push(sx.slice(pos, ltPos));
+                    parts.push(newOpenTag + inner + '</' + tagName + '>');
+                    found.add(ref);
+                    pos = cellEnd;
+                }
+
+                return { xml: parts.join(''), found: found };
+            }
+
             // 숫자 여부 판별
             function isNumericValue(str) {
                 if (str === null || str === undefined || String(str).trim() === '') return false;
@@ -3794,12 +3877,6 @@ function renderColumnVisibilityDropdown() {
                         }
                         var zip = _liveZip;
 
-                        // ── 진단: 원본 ZIP 파일 목록 ──
-                        var diagLines = [];
-                        var allZipFiles = Object.keys(zip.files).filter(function(k){ return !zip.files[k].dir; });
-                        diagLines.push('ZIP파일 수: ' + allZipFiles.length);
-                        diagLines.push('ZIP목록: ' + allZipFiles.join(', '));
-
                         // rels 파싱
                         var relsXml = await zip.file("xl/_rels/workbook.xml.rels").async("string");
                         var relMap = {};
@@ -3816,8 +3893,6 @@ function renderColumnVisibilityDropdown() {
                             }
                             ri = re2 + 2;
                         }
-                        console.log('[save] relMap:', relMap);
-
                         // sheetMap 파싱
                         var wbXml = await zip.file("xl/workbook.xml").async("string");
                         var sheetMap = {};
@@ -3840,8 +3915,6 @@ function renderColumnVisibilityDropdown() {
                             }
                             si2 = se + 2;
                         }
-                        console.log('[save] sheetMap:', sheetMap);
-
                         // 폴백
                         if (Object.keys(sheetMap).length === 0) {
                             Object.keys(zip.files).forEach(function(p){
@@ -3850,12 +3923,6 @@ function renderColumnVisibilityDropdown() {
                                     sheetMap[currentSheetNames[parseInt(m2[1])-1]] = p;
                             });
                         }
-                        console.log('[save] final sheetMap:', sheetMap);
-                        diagLines.push('relMap: ' + JSON.stringify(relMap));
-                        diagLines.push('sheetMap: ' + JSON.stringify(sheetMap));
-                        diagLines.push('cellChanges: ' + JSON.stringify(cellChanges.map(function(c){return c.sheetName+'/'+c.ref+'='+c.value;})));
-                        console.log('[save] cellChanges sheetNames:', cellChanges.map(function(c){return c.sheetName;}));
-                        
                         // 셀 변경 적용
                         var cbs = {};
                         for (var i=0; i<cellChanges.length; i++) {
@@ -3894,57 +3961,54 @@ function renderColumnVisibilityDropdown() {
 
                         for (var sn in cbs) {
                             var sp = sheetMap[sn];
-                            if (!sp) { console.warn('[save] 시트 없음:', sn, '| sheetMap:', sheetMap); continue; }
-                            // 시트 XML만 x: 스트립
+                            if (!sp) { console.warn('[save] 시트 없음:', sn); continue; }
                             var sx = await zip.file(sp).async("string");
                             var cnt = 0;
 
+                            // ── 배치 교체: 단일 XML 패스로 모든 변경사항 처리 (O(n) 성능) ──
+                            var batchResult = replaceCellsInSheetBatch(sx, cbs[sn]);
+                            sx = batchResult.xml;
+                            cnt += batchResult.found.size;
+                            savedCount += batchResult.found.size;
+
+                            // 배치에서 찾지 못한 셀(원본에 없던 빈 셀) → 삽입
+                            var pfxM = sx.match(/<([a-zA-Z0-9_]+):c\s/);
+                            var rowPfxM = sx.match(/<([a-zA-Z0-9_]+):row\s/);
+                            var rowPfx = rowPfxM ? (rowPfxM[1]+':') : '';
                             for (var j=0; j<cbs[sn].length; j++) {
                                 var ch2 = cbs[sn][j];
-                                var result = replaceCellInSheet(sx, ch2.ref, ch2.value, ch2.formula);
-                                if (result !== null) {
-                                    sx = result; cnt++; savedCount++;
-                                    console.log('[save] ✅', sn, ch2.ref, '=', ch2.value);
-                                } else {
-                                    // 셀 없음 → 원본 prefix 감지 후 삽입
-                                    var rn = ch2.ref.match(/\d+/)[0];
-                                    // sheet 전체에서 사용중인 cell prefix 감지
-                                    var pfxM = sx.match(/<([a-zA-Z0-9_]+):c\s/);
-                                    var pfx2 = pfxM ? (pfxM[1] + ':') : '';
-                                    var v2 = String(ch2.value||'').trim();
-                                    var n2 = Number(v2.replace(/,/g,''));
-                                    var isNum2 = v2 !== '' && !isNaN(n2) && isFinite(n2);
-                                    var insertXml = isNum2
-                                        ? '<'+pfx2+'c r="'+ch2.ref+'"><'+pfx2+'v>'+n2+'</'+pfx2+'v></'+pfx2+'c>'
-                                        : '<'+pfx2+'c r="'+ch2.ref+'" t="inlineStr"><'+pfx2+'is><'+pfx2+'t>'+v2.replace(/&/g,'&amp;')+'</'+pfx2+'t></'+pfx2+'is></'+pfx2+'c>';
-                                    var rowTag = 'r="'+rn+'"';
-                                    var rp = sx.indexOf('<row ');
-                                    var rowPfxM = sx.match(/<([a-zA-Z0-9_]+):row\s/);
-                                    var rowPfx = rowPfxM ? (rowPfxM[1]+':') : '';
-                                    var rowNeedle = sx.indexOf((rowPfx?'<'+rowPfx+'row ':'<row ')); 
-                                    var foundRow = false;
-                                    var srch2 = 0;
-                                    while(true) {
-                                        var rTagS = sx.indexOf('<'+(rowPfx||'')+'row ', srch2);
-                                        if(rTagS===-1) break;
-                                        var rTagE = sx.indexOf('>', rTagS);
-                                        if(sx.slice(rTagS,rTagE+1).indexOf(rowTag)!==-1) {
-                                            sx = sx.slice(0,rTagE+1) + insertXml + sx.slice(rTagE+1);
-                                            foundRow = true; break;
-                                        }
-                                        srch2 = rTagE+1;
+                                if (batchResult.found.has(ch2.ref)) continue;
+                                // 셀 없음 → 삽입
+                                var rn = ch2.ref.match(/\d+/)[0];
+                                var pfx2 = pfxM ? (pfxM[1] + ':') : '';
+                                var v2 = String(ch2.value||'').trim();
+                                var n2 = Number(v2.replace(/,/g,''));
+                                var isNum2 = v2 !== '' && !isNaN(n2) && isFinite(n2);
+                                var insertXml = isNum2
+                                    ? '<'+pfx2+'c r="'+ch2.ref+'"><'+pfx2+'v>'+n2+'</'+pfx2+'v></'+pfx2+'c>'
+                                    : '<'+pfx2+'c r="'+ch2.ref+'" t="inlineStr"><'+pfx2+'is><'+pfx2+'t>'+v2.replace(/&/g,'&amp;')+'</'+pfx2+'t></'+pfx2+'is></'+pfx2+'c>';
+                                var rowTag = 'r="'+rn+'"';
+                                var foundRow = false;
+                                var srch2 = 0;
+                                while(true) {
+                                    var rTagS = sx.indexOf('<'+(rowPfx||'')+'row ', srch2);
+                                    if(rTagS===-1) break;
+                                    var rTagE = sx.indexOf('>', rTagS);
+                                    if(sx.slice(rTagS,rTagE+1).indexOf(rowTag)!==-1) {
+                                        sx = sx.slice(0,rTagE+1) + insertXml + sx.slice(rTagE+1);
+                                        foundRow = true; break;
                                     }
-                                    if(!foundRow) {
-                                        var sdClose = sx.lastIndexOf('</'+(rowPfx||'')+'sheetData>');
-                                        if(sdClose===-1) sdClose = sx.lastIndexOf('</sheetData>');
-                                        if(sdClose!==-1) {
-                                            var rowXml = '<'+(rowPfx||'')+'row r="'+rn+'">'+insertXml+'</'+(rowPfx||'')+'row>';
-                                            sx = sx.slice(0,sdClose) + rowXml + sx.slice(sdClose);
-                                        }
-                                    }
-                                    cnt++; savedCount++;
-                                    console.log('[save] ➕', sn, ch2.ref, '=', ch2.value);
+                                    srch2 = rTagE+1;
                                 }
+                                if(!foundRow) {
+                                    var sdClose = sx.lastIndexOf('</'+(rowPfx||'')+'sheetData>');
+                                    if(sdClose===-1) sdClose = sx.lastIndexOf('</sheetData>');
+                                    if(sdClose!==-1) {
+                                        var rowXml = '<'+(rowPfx||'')+'row r="'+rn+'">'+insertXml+'</'+(rowPfx||'')+'row>';
+                                        sx = sx.slice(0,sdClose) + rowXml + sx.slice(sdClose);
+                                    }
+                                }
+                                cnt++; savedCount++;
                             }
                             zip.file(sp, sx);
                             savedSheetLog.push(sn + ': ' + cnt + '셀');
