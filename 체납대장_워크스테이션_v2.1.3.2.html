@@ -1625,7 +1625,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             hasData = true;
 
                         } else if (entry.kind === 'file') {
-                            if (!entry.name.match(/\.(xlsx|xlsm|csv|txt|html|htm)$/i)) continue;
+                            if (!entry.name.match(/\.(xlsx|xlsm|xls|csv|txt|html|htm)$/i)) continue;
                             var isTxt = entry.name.toLowerCase().endsWith('.txt');
                             var isHtml = entry.name.match(/\.(html|htm)$/i);
                             fileHandlesMap.set(entry.name, entry);
@@ -1659,6 +1659,10 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             (function(e, txt, html, parentH) {
                                 btn.onclick = async function() {
                                     try {
+                                        if (e.name.toLowerCase().endsWith('.xls')) {
+                                            showToast('⚠️ .xls 형식은 지원되지 않습니다. Excel에서 .xlsx로 저장 후 사용해주세요.');
+                                            return;
+                                        }
                                         if (html) {
                                             var f = await e.getFile();
                                             var htmlText = await f.text();
@@ -5475,7 +5479,14 @@ function renderColumnVisibilityDropdown() {
                                         if (rTagS3===-1) break;
                                         var rTagE3 = sx2.indexOf('>', rTagS3);
                                         if (sx2.slice(rTagS3,rTagE3+1).indexOf('r="'+rn3+'"')!==-1) {
-                                            sx2 = sx2.slice(0,rTagE3+1)+insertXml3+sx2.slice(rTagE3+1);
+                                            // 새 열은 기존 열 뒤에 와야 하므로 </row> 직전에 삽입
+                                            var rowCloseTag3 = '</'+(rowPfx3||'')+'row>';
+                                            var rowCloseP3 = sx2.indexOf(rowCloseTag3, rTagE3);
+                                            if (rowCloseP3 !== -1) {
+                                                sx2 = sx2.slice(0, rowCloseP3) + insertXml3 + sx2.slice(rowCloseP3);
+                                            } else {
+                                                sx2 = sx2.slice(0,rTagE3+1)+insertXml3+sx2.slice(rTagE3+1);
+                                            }
                                             foundRow3=true; break;
                                         }
                                         srch3 = rTagE3+1;
@@ -5497,6 +5508,28 @@ function renderColumnVisibilityDropdown() {
                             var hRef = idxToColStr(hci) + '1';
                             var hPatched = replaceCellInSheet(sx2, hRef, resultHeaders[hci], null);
                             if (hPatched !== null) { sx2 = hPatched; }
+                            else {
+                                // row 1에 해당 셀 없으면 </row> 직전에 삽입
+                                var hPfxM = sx2.match(/<([a-zA-Z0-9_]+):c\s/);
+                                var hPfx = hPfxM ? hPfxM[1]+':' : '';
+                                var hRowPfxM = sx2.match(/<([a-zA-Z0-9_]+):row\s/);
+                                var hRowPfx = hRowPfxM ? hRowPfxM[1]+':' : '';
+                                var hXml = '<'+hPfx+'c r="'+hRef+'" t="inlineStr"><'+hPfx+'is><'+hPfx+'t>'+String(resultHeaders[hci]||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</'+hPfx+'t></'+hPfx+'is></'+hPfx+'c>';
+                                // row 1 찾기
+                                var h1s = 0;
+                                while (true) {
+                                    var h1rS = sx2.indexOf('<'+(hRowPfx||'')+'row ', h1s);
+                                    if (h1rS === -1) break;
+                                    var h1rE = sx2.indexOf('>', h1rS);
+                                    if (sx2.slice(h1rS, h1rE+1).indexOf('r="1"') !== -1) {
+                                        var h1Close = '</'+(hRowPfx||'')+'row>';
+                                        var h1CloseP = sx2.indexOf(h1Close, h1rE);
+                                        if (h1CloseP !== -1) sx2 = sx2.slice(0, h1CloseP) + hXml + sx2.slice(h1CloseP);
+                                        break;
+                                    }
+                                    h1s = h1rE + 1;
+                                }
+                            }
                         }
 
                         zip.file(spFound, sx2);
