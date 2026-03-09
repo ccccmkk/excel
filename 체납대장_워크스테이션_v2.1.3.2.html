@@ -4433,13 +4433,14 @@ function renderColumnVisibilityDropdown() {
                         "<div class='flex justify-between py-1'><span class='text-slate-500'>저장 위치</span><span class='font-black text-slate-800 text-right truncate max-w-xs'>"+savedTo+"</span></div>"+
                         "<div class='flex justify-between py-1 border-t border-slate-100 mt-1'><span class='text-slate-500'>반영된 셀</span><span class='font-black text-emerald-600 text-2xl'>"+savedCount+"개</span></div>"+
                         (savedSheetLog.length?"<div class='text-xs text-slate-400 mt-1'>"+savedSheetLog.join(', ')+"</div>":"")+
-                        "<details class='mt-2 text-xs text-slate-400'><summary>진단 로그</summary><pre style='font-size:10px;overflow:auto;max-height:150px'>"+diagLines.join('\n')+"</pre></details>"
+                        (savedSheetLog.length?"<details class='mt-2 text-xs text-slate-400'><summary>진단 로그</summary><pre style='font-size:10px;overflow:auto;max-height:150px'>"+savedSheetLog.join('\n')+"</pre></details>":"")
                     );
 
                 } catch(err) {
                     if (err.name === 'AbortError') { document.getElementById('save-overlay').classList.add('hidden'); return; }
                     console.error('[save] 오류:', err);
                     addLog('error', { msg: err.message, ctx: 'performSave', stack: (err.stack||'').slice(0,300) });
+                    showSaveResult('error', "<div class='text-red-600 text-sm'>"+(err.message||'알 수 없는 오류')+"</div>");
                 }
             }
 
