@@ -2440,7 +2440,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             hStore.forEach(function(h, i) {
                                 if (!h) return;
                                 const hStr = String(h);
-                                if (hStr.includes('일자') || hStr.includes('날짜') || /일$/.test(hStr)) {
+                                if (hStr.includes('일자') || hStr.includes('날짜') || hStr.includes('기한') || hStr.includes('기간') || /일$/.test(hStr)) {
                                     dateColByName.push(i);
                                 }
                             });
@@ -5289,12 +5289,12 @@ function renderColumnVisibilityDropdown() {
                 document.getElementById('cmp-stat-nomatch').textContent = (total - matchCount) + '건';
 
                 cmpState.filterMode = 'all';
-                cmpRenderTable('left', leftKeySet);
+                cmpRenderTable('left', leftDisplayMap);
                 // 오른쪽에서 왼쪽에 없는 것 표시
                 var rightHighlight = {};
                 cmpState.right.data.forEach(function(row) {
                     var key = cmpGetKey('right', row);
-                    if (key) rightHighlight[key] = leftKeySet[key] !== undefined ? true : false;
+                    if (key) rightHighlight[key] = leftDisplayMap[key] !== undefined ? true : false;
                 });
                 cmpRenderTable('right', rightHighlight);
             };
