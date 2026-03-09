@@ -3141,12 +3141,36 @@ function renderColumnVisibilityDropdown() {
                         let isChecked = selectedRowRefs.has(row.r) ? "checked" : "";
                         chkTd.innerHTML = "<input type='checkbox' class='row-checkbox w-3 h-3 theme-check rounded border-slate-300 cursor-pointer' value='" + row.r + "' " + isChecked + ">";
                         tr.appendChild(chkTd);
-                        const actTd = document.createElement('td'); actTd.className = "px-2 py-1 text-center sticky left-[76px] z-10 bg-inherit shadow-[1px_0_0_#e2e8f0] dark:shadow-[1px_0_0_#334155]";
-                        const actBtn = document.createElement('button'); actBtn.className = "px-1.5 py-1 bg-white border border-slate-300 text-slate-600 rounded shadow-sm hover:bg-blue-50 theme-text transition-colors font-bold text-[9px] opacity-60 group-hover:opacity-100 whitespace-nowrap dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300";
-                        actBtn.innerHTML = "이동 ➔"; actBtn.onclick = function() { openMoveModal(row.r); };
-                        var delBtn = document.createElement('button'); delBtn.className = "mt-0.5 px-1.5 py-1 bg-white border border-red-300 text-red-500 rounded shadow-sm hover:bg-red-50 transition-colors font-bold text-[9px] opacity-60 group-hover:opacity-100 whitespace-nowrap dark:bg-slate-700 dark:border-red-700 dark:text-red-400";
-                        delBtn.innerHTML = "삭제 ✕"; (function(rRef){ delBtn.onclick = function(){ deleteRow(rRef); }; })(row.r);
-                        actTd.appendChild(actBtn); actTd.appendChild(delBtn); tr.appendChild(actTd);
+                        const actTd = document.createElement('td'); actTd.className = "px-1 py-1 text-center sticky left-[76px] z-10 bg-inherit shadow-[1px_0_0_#e2e8f0] dark:shadow-[1px_0_0_#334155]";
+                        var menuBtn = document.createElement('button'); menuBtn.className = "w-6 h-6 flex items-center justify-center bg-white border border-slate-300 text-slate-500 rounded shadow-sm hover:bg-slate-50 transition-colors font-black text-sm opacity-60 group-hover:opacity-100 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300"; menuBtn.innerHTML = "⋮"; menuBtn.title = "행 작업";
+                        (function(rRef){
+                            menuBtn.onclick = function(e) {
+                                e.stopPropagation();
+                                var ex = document.getElementById('_row_action_menu');
+                                if (ex) { ex.remove(); return; }
+                                var dd = document.createElement('div'); dd.id = '_row_action_menu';
+                                dd.style.cssText = 'position:fixed;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.14);z-index:2000;overflow:hidden;min-width:140px;dark:background:#1e293b';
+                                var rect = menuBtn.getBoundingClientRect();
+                                dd.style.top = (rect.bottom + 4) + 'px'; dd.style.left = rect.left + 'px';
+                                var moveOpt = document.createElement('button');
+                                moveOpt.style.cssText = 'width:100%;padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#334155;border:none;background:transparent;cursor:pointer';
+                                moveOpt.textContent = '➔ 다른 시트로 이동';
+                                moveOpt.onmouseover = function(){this.style.background='#eff6ff';this.style.color='#1d4ed8';};
+                                moveOpt.onmouseout = function(){this.style.background='transparent';this.style.color='#334155';};
+                                moveOpt.onclick = function(){dd.remove(); openMoveModal(rRef);};
+                                var sep = document.createElement('div'); sep.style.cssText = 'height:1px;background:#f1f5f9;margin:0 8px';
+                                var delOpt = document.createElement('button');
+                                delOpt.style.cssText = 'width:100%;padding:9px 14px;text-align:left;font-size:11px;font-weight:700;color:#ef4444;border:none;background:transparent;cursor:pointer';
+                                delOpt.textContent = '✕ 행 삭제';
+                                delOpt.onmouseover = function(){this.style.background='#fef2f2';};
+                                delOpt.onmouseout = function(){this.style.background='transparent';};
+                                delOpt.onclick = function(){dd.remove(); deleteRow(rRef);};
+                                dd.appendChild(moveOpt); dd.appendChild(sep); dd.appendChild(delOpt);
+                                document.body.appendChild(dd);
+                                setTimeout(function(){ document.addEventListener('click', function c(){dd.remove(); document.removeEventListener('click',c);}, {once:true}); }, 0);
+                            };
+                        })(row.r);
+                        actTd.appendChild(menuBtn); tr.appendChild(actTd);
                         for(let i=0; i<headerStore.length; i++) {
                             if (hiddenColumns.has(i)) continue; 
                             var visColIdx2 = 0; for(let ci=0; ci<=i; ci++) { if(!hiddenColumns.has(ci)) visColIdx2++; }
@@ -4851,20 +4875,17 @@ function renderColumnVisibilityDropdown() {
                 var isXls = file.name.toLowerCase().endsWith('.xls');
                 showMiniLoader(isXls ? 'xls → xlsx 변환 중...' : (side === 'left' ? '왼쪽 파일 로딩...' : '오른쪽 파일 로딩...'));
                 try {
-                    // xls 변환 알림
-                    if (isXls) showToast('📄 ' + file.name + ' → xls 자동 변환 중...');
-                    // 원본 버퍼 저장 (서식 보존 저장에 사용)
                     var rawBuf = null;
-                    if (!file.name.toLowerCase().endsWith('.csv')) {
-                        rawBuf = await file.arrayBuffer();
-                    }
-                    var wb = await cmpLoadWorkbook(file);
-                    // xls 변환 후 xlsx 다운로드 옵션 제공
+                    // xls: 여기서 한 번만 변환 → xlsx File로 교체
                     if (isXls) {
-                        var xlsxName = file.name.replace(/\.xls$/i, '.xlsx');
-                        var xlsWb = XLSX.read(rawBuf, { type: 'array', cellStyles: true, cellDates: true });
-                        var xlsxArr = XLSX.write(xlsWb, { type: 'array', bookType: 'xlsx' });
-                        var xlsxBlob = new Blob([xlsxArr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        showToast('📄 ' + file.name + ' → xlsx 변환 중...');
+                        var xlsOrigBuf = await file.arrayBuffer();
+                        var xlsWb2 = XLSX.read(new Uint8Array(xlsOrigBuf), { type: 'array', cellStyles: true, cellDates: true });
+                        var xlsxArr2 = XLSX.write(xlsWb2, { type: 'array', bookType: 'xlsx' });
+                        var xlsxBlob2 = new Blob([new Uint8Array(xlsxArr2)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        var xlsxName2 = file.name.replace(/\.xls$/i, '.xlsx');
+                        file = new File([xlsxBlob2], xlsxName2); // 이후 xlsx로 처리
+                        rawBuf = new Uint8Array(xlsxArr2).buffer;
                         // 다운로드 배너
                         (function(blob, name) {
                             var banner = document.createElement('div');
@@ -4873,16 +4894,18 @@ function renderColumnVisibilityDropdown() {
                             var dlBtn = document.createElement('button');
                             dlBtn.style.cssText = 'padding:5px 12px;background:#6366f1;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer';
                             dlBtn.textContent = '⬇ xlsx 다운로드';
-                            dlBtn.onclick = function() { var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); banner.remove(); };
+                            dlBtn.onclick = function(){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); banner.remove(); };
                             var closeBtn = document.createElement('button');
                             closeBtn.style.cssText = 'padding:3px 7px;background:#f1f5f9;color:#94a3b8;border:none;border-radius:6px;font-size:11px;cursor:pointer';
-                            closeBtn.textContent = '✕';
-                            closeBtn.onclick = function(){ banner.remove(); };
+                            closeBtn.textContent = '✕'; closeBtn.onclick = function(){ banner.remove(); };
                             banner.appendChild(dlBtn); banner.appendChild(closeBtn);
                             document.body.appendChild(banner);
                             setTimeout(function(){ if(banner.parentNode) banner.remove(); }, 8000);
-                        })(xlsxBlob, xlsxName);
+                        })(xlsxBlob2, xlsxName2);
+                    } else if (!file.name.toLowerCase().endsWith('.csv')) {
+                        rawBuf = await file.arrayBuffer();
                     }
+                    var wb = await cmpLoadWorkbook(file); // xls는 이미 xlsx File로 교체됨
                     hideMiniLoader(0);
                     var sheetNames = wb.worksheets.map(function(ws){ return ws.name; });
                     var sheetIdx = await cmpShowSheetPicker(file.name, sheetNames);
@@ -4990,15 +5013,8 @@ function renderColumnVisibilityDropdown() {
                     if (text.includes('�')) text = new TextDecoder('utf-8').decode(await file.arrayBuffer());
                     var ws = wb.addWorksheet('Sheet1');
                     parseCSV(text).forEach(function(r) { ws.addRow(r); });
-                } else if (file.name.toLowerCase().endsWith('.xls')) {
-                    // SheetJS로 xls → xlsx 변환 후 ExcelJS에 로드
-                    var xlsBuf = await file.arrayBuffer();
-                    var xlsWb = XLSX.read(xlsBuf, { type: 'array', cellStyles: true, cellDates: true });
-                    var xlsxArr = XLSX.write(xlsWb, { type: 'array', bookType: 'xlsx' });
-                    var buf = new Uint8Array(xlsxArr).buffer;
-                    buf = await sanitizeExcelBuffer(buf);
-                    await wb.xlsx.load(buf);
                 } else {
+                    // xls는 cmpLoadFileObject에서 이미 xlsx File로 변환됨
                     var buf = await file.arrayBuffer();
                     buf = await sanitizeExcelBuffer(buf);
                     await wb.xlsx.load(buf);
