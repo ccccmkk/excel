@@ -2435,6 +2435,27 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                                 if(r) { for(let y=0; y<r.length; y++) { if(r[y] && r[y].value && String(r[y].value).trim() !== "") { hasVal = true; break; } } }
                                 if(hasVal) dStore.push(r);
                             }
+                            // ── 열 이름 기반 날짜 보완: 헤더에 '일자'·'날짜'·'일'(끝글자) 포함된 열의 숫자값 → 날짜 변환 ──
+                            const dateColByName = [];
+                            hStore.forEach(function(h, i) {
+                                if (!h) return;
+                                const hStr = String(h);
+                                if (hStr.includes('일자') || hStr.includes('날짜') || /일$/.test(hStr)) {
+                                    dateColByName.push(i);
+                                }
+                            });
+                            if (dateColByName.length > 0) {
+                                dStore.forEach(function(row) {
+                                    if (!row) return;
+                                    dateColByName.forEach(function(ci) {
+                                        if (!row[ci]) return;
+                                        const rawNum = parseFloat(String(row[ci].value).replace(/,/g, ''));
+                                        if (!isNaN(rawNum) && rawNum > 20000 && rawNum < 60000) {
+                                            row[ci] = Object.assign({}, row[ci], { value: excelSerialToDateStr(rawNum, '') });
+                                        }
+                                    });
+                                });
+                            }
                             parsedSheetsCache[sheetName] = { headerStore: hStore, dataStore: dStore };
                         }
                     }
