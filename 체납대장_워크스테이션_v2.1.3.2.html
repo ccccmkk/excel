@@ -745,6 +745,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex-shrink-0 overflow-x-auto">
                     <div class="flex items-center gap-2 w-max min-w-full">
                         <div id="sheet-tabs" class="flex flex-nowrap gap-2 whitespace-nowrap"></div>
+                        <button id="add-sheet-btn" title="새 시트 추가" class="hidden flex-shrink-0 ml-1 w-7 h-7 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-colors font-bold text-base leading-none dark:border-slate-600 dark:text-slate-500 dark:hover:border-blue-500 dark:hover:text-blue-400 dark:hover:bg-blue-900/20">+</button>
                     </div>
                 </div>
 
@@ -1186,6 +1187,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             let parsedSheetsCache = {};
             let cellChanges = [];
             let rowMoves = [];
+            let rowDeletes = []; // { sourceSheet, sourceRowRef }
             let _editUndoStack = []; // { sheetName, ref, rowR, colI, prevValue, prevFormula, wasInChanges }
             let _draggedFileHandle = null; // 내부 탐색기에서 드래그 중인 파일 핸들
             let selectedRowRefs = new Set();
@@ -2357,6 +2359,29 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 if(el) el.textContent = selectedRowRefs.size; 
             }
 
+            function deleteRow(rowRef) {
+                var row = dataStore.find(function(r){ return r.r === rowRef; });
+                var preview = row ? row.map(function(c){ return c ? String(c.value||'') : ''; }).filter(Boolean).slice(0,3).join(' / ') : '';
+                if (!confirm('이 행을 삭제하시겠습니까?\n' + preview + '\n\n저장 시 파일에 영구 반영됩니다.')) return;
+                var originalR = row ? row.originalR : rowRef;
+                rowDeletes.push({ sourceSheet: currentActiveSheetName, sourceRowRef: originalR });
+                dataStore = dataStore.filter(function(r){ return r.r !== rowRef; });
+                baseFilteredStore = baseFilteredStore.filter(function(r){ return r.r !== rowRef; });
+                selectedRowRefs.delete(rowRef);
+                // r 재번호 (display용)
+                var newN = 1; dataStore.forEach(function(r){ r.r = newN++; });
+                if (parsedSheetsCache[currentActiveSheetName]) parsedSheetsCache[currentActiveSheetName].dataStore = dataStore;
+                cellValueMap.clear();
+                dataStore.forEach(function(r){ r.forEach(function(c){ if(c&&c.ref) cellValueMap.set(c.ref,c.value); }); });
+                buildDependencyGraph();
+                markCurrentFileModified();
+                addLog('delete', { sheet: currentActiveSheetName, rowRef: originalR });
+                updateSelectedCountUI();
+                applyMainFilters();
+                updateTableAndPagination();
+                showToast('🗑️ 행 삭제 완료 (저장 시 적용)');
+            }
+
             function openMoveModal(rowRef) {
                 selectedRowRefs.clear(); selectedRowRefs.add(rowRef); updateSelectedCountUI();
                 const sel = document.getElementById('target-sheet-select');
@@ -2417,7 +2442,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 if(fNameUI) fNameUI.textContent = originalFileName;
                 document.getElementById('file-info-header').classList.remove('hidden');
                 document.getElementById('file-info-header').classList.add('flex');
-                parsedSheetsCache = {}; cellChanges = []; rowMoves = []; selectedRowRefs.clear(); masterActionLog = []; updateHistoryUI(); updateSelectedCountUI();
+                parsedSheetsCache = {}; cellChanges = []; rowMoves = []; rowDeletes = []; selectedRowRefs.clear(); masterActionLog = []; updateHistoryUI(); updateSelectedCountUI();
                 window._debugLog = window._debugLog || [];
                 window._debugLog.unshift({ date: new Date().toISOString().slice(0,10), time: new Date().toLocaleTimeString('ko-KR',{hour12:false}), type: 'load', file: file.name, size: file.size });
                 cellValueMap.clear(); hiddenColumnsMap.clear();
@@ -2631,10 +2656,41 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     const n = names[i];
                     const b = document.createElement('button');
                     b.className = 'sheet-btn text-xs py-1.5 px-3'; b.textContent = n;
-                    b.onclick = function() { loadSheet(i); };
+                    b.onclick = (function(idx){ return function(){ loadSheet(idx); }; })(i);
                     container.appendChild(b);
                     const opt = document.createElement('option'); opt.value = n; opt.textContent = n; select.appendChild(opt);
                 }
+                // "+" 버튼 표시 (파일 열려있을 때만)
+                var addBtn = document.getElementById('add-sheet-btn');
+                if (addBtn) addBtn.classList.toggle('hidden', names.length === 0);
+            }
+
+            function addNewSheet() {
+                // 이름 입력 다이얼로그
+                var defaultName = '새시트' + (currentSheetNames.length + 1);
+                var name = window.prompt('새 시트 이름을 입력하세요:', defaultName);
+                if (!name) return;
+                name = name.trim();
+                if (!name) return;
+                if (currentSheetNames.includes(name)) {
+                    showToast('⚠️ 이미 존재하는 시트 이름입니다: ' + name);
+                    return;
+                }
+                // ExcelJS 워크북에 워크시트 추가
+                if (!excelWorkbook) { showToast('⚠️ 파일이 열려있지 않습니다.'); return; }
+                var ws = excelWorkbook.addWorksheet(name);
+                // parsedSheetsCache에 빈 시트 등록
+                parsedSheetsCache[name] = { headerStore: [], dataStore: [], filteredDataStore: [], mainColFilters: {}, mainSortCol: -1, mainSortDir: 'asc', baseFilteredStore: [] };
+                currentSheetNames.push(name);
+                // 원본 ZIP에도 반영 (저장 시 포함되도록 originalFileBuffer 무효화 → 저장 강제)
+                // ExcelJS 워크북을 통해 저장할 때 새 시트가 포함됨
+                // 단, performSave는 originalFileBuffer 기반이므로 새 시트가 저장에 포함되려면
+                // ExcelJS 저장 경로를 써야 함 → 여기서는 UI만 업데이트하고 "저장" 시 xlsx 전체 재생성 플래그 설정
+                markCurrentFileModified();
+                renderTabs(currentSheetNames);
+                // 새 시트로 이동
+                loadSheet(currentSheetNames.length - 1);
+                showToast('✅ 시트 "' + name + '" 추가 완료');
             }
 
             function populateDateColumnSelect() {
@@ -2766,8 +2822,8 @@ function renderColumnVisibilityDropdown() {
                     ftd.style.cssText = "padding:2px 4px;border-right:1px solid #f1f5f9;background:#fafbfc;";
                     var finput = document.createElement('input');
                     finput.type = 'text';
-                    finput.placeholder = '🔍 ~포함 =같음 !=다름 > < ^ $';
-                    finput.title = '필터 연산자:\n~텍스트 또는 텍스트 → 포함\n=값 → 같음\n!=값 → 다름\n>숫자 / >=숫자 → 초과/이상\n<숫자 / <=숫자 → 미만/이하\n^텍스트 → 시작\n$텍스트 → 끝';
+                    finput.placeholder = '🔍 ~포함 =같음 > < >= <= 날짜OK';
+                    finput.title = '필터 연산자:\n~텍스트 또는 텍스트 → 포함\n=값 → 같음\n!=값 → 다름\n>숫자/날짜 / >=숫자/날짜 → 초과/이상\n<숫자/날짜 / <=숫자/날짜 → 미만/이하\n^텍스트 → 시작  $텍스트 → 끝\n\n날짜 형식: 20210202 / 2021-02-02 / 2021/02/02 / 2021.02.02\n예) <2021/06/01  >=2021.01.01  =2023-12-31';
                     finput.setAttribute('data-filter-col', i);
                     finput.style.cssText = "width:100%;box-sizing:border-box;padding:2px 5px;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;outline:none;background:#fff;color:#475569;font-weight:600;min-width:60px";
                     finput.value = mainColFilters[i] || '';
@@ -2804,8 +2860,26 @@ function renderColumnVisibilityDropdown() {
             var mainColFilters = {};      // { colIdx: filterText }
             var baseFilteredStore = [];   // 검색 필터 적용 전 원본 (날짜/고급 필터 결과)
 
+            // ── 날짜 문자열 파싱 (필터용) ──
+            // 지원 형식: 20210202 / 2021-02-02 / 2021/02/02 / 2021.02.02
+            function parseFilterDateVal(str) {
+                if (!str) return null;
+                var s = str.trim().replace(/[./\/\\]/g, '-');
+                if (/^\d{8}$/.test(s)) {
+                    var dt = new Date(parseInt(s.slice(0,4)), parseInt(s.slice(4,6))-1, parseInt(s.slice(6,8)));
+                    return isNaN(dt.getTime()) ? null : dt;
+                }
+                var parts = s.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    var y = parseInt(parts[0]), m = parseInt(parts[1])-1, d = parseInt(parts[2]);
+                    var dt2 = new Date(y, m, d);
+                    return isNaN(dt2.getTime()) ? null : dt2;
+                }
+                return null;
+            }
+
             // ── 열별 필터 연산자 파싱 ──
-            // 지원: =값, !=값, >숫자, >=숫자, <숫자, <=숫자, ^시작, $끝, ~포함(기본)
+            // 지원: =값, !=값, >숫자/날짜, >=숫자/날짜, <숫자/날짜, <=숫자/날짜, ^시작, $끝, ~포함(기본)
             function parseColFilter(txt) {
                 if (!txt) return null;
                 var m;
@@ -2826,14 +2900,32 @@ function renderColumnVisibilityDropdown() {
                 var t = parsed.val.toLowerCase();
                 var vn = parseFloat(v.replace(/,/g,'')), tn = parseFloat(parsed.val.replace(/,/g,''));
                 var numOk = !isNaN(vn) && !isNaN(tn);
+                // 날짜 비교 시도 (숫자 비교가 안 될 때)
+                var td = parseFilterDateVal(parsed.val);
+                var vd = td ? parseInconsistentDate(cellVal) : null;
+                var dateOk = !!(td && vd);
                 switch (parsed.op) {
                     case '~':  return v.includes(t);
-                    case '=':  return numOk ? vn === tn : v === t;
-                    case '!=': return numOk ? vn !== tn : v !== t;
-                    case '>':  return numOk && vn > tn;
-                    case '>=': return numOk && vn >= tn;
-                    case '<':  return numOk && vn < tn;
-                    case '<=': return numOk && vn <= tn;
+                    case '=':
+                        if (numOk) return vn === tn;
+                        if (dateOk) return vd.getTime() === td.getTime();
+                        return v === t;
+                    case '!=':
+                        if (numOk) return vn !== tn;
+                        if (dateOk) return vd.getTime() !== td.getTime();
+                        return v !== t;
+                    case '>':
+                        if (numOk) return vn > tn;
+                        return dateOk && vd > td;
+                    case '>=':
+                        if (numOk) return vn >= tn;
+                        return dateOk && vd >= td;
+                    case '<':
+                        if (numOk) return vn < tn;
+                        return dateOk && vd < td;
+                    case '<=':
+                        if (numOk) return vn <= tn;
+                        return dateOk && vd <= td;
                     case '^':  return v.startsWith(t);
                     case '$':  return v.endsWith(t);
                 }
@@ -3051,8 +3143,10 @@ function renderColumnVisibilityDropdown() {
                         tr.appendChild(chkTd);
                         const actTd = document.createElement('td'); actTd.className = "px-2 py-1 text-center sticky left-[76px] z-10 bg-inherit shadow-[1px_0_0_#e2e8f0] dark:shadow-[1px_0_0_#334155]";
                         const actBtn = document.createElement('button'); actBtn.className = "px-1.5 py-1 bg-white border border-slate-300 text-slate-600 rounded shadow-sm hover:bg-blue-50 theme-text transition-colors font-bold text-[9px] opacity-60 group-hover:opacity-100 whitespace-nowrap dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300";
-                        actBtn.innerHTML = "이동 ➔"; actBtn.onclick = function() { openMoveModal(row.r); }; 
-                        actTd.appendChild(actBtn); tr.appendChild(actTd);
+                        actBtn.innerHTML = "이동 ➔"; actBtn.onclick = function() { openMoveModal(row.r); };
+                        var delBtn = document.createElement('button'); delBtn.className = "mt-0.5 px-1.5 py-1 bg-white border border-red-300 text-red-500 rounded shadow-sm hover:bg-red-50 transition-colors font-bold text-[9px] opacity-60 group-hover:opacity-100 whitespace-nowrap dark:bg-slate-700 dark:border-red-700 dark:text-red-400";
+                        delBtn.innerHTML = "삭제 ✕"; (function(rRef){ delBtn.onclick = function(){ deleteRow(rRef); }; })(row.r);
+                        actTd.appendChild(actBtn); actTd.appendChild(delBtn); tr.appendChild(actTd);
                         for(let i=0; i<headerStore.length; i++) {
                             if (hiddenColumns.has(i)) continue; 
                             var visColIdx2 = 0; for(let ci=0; ci<=i; ci++) { if(!hiddenColumns.has(ci)) visColIdx2++; }
@@ -3504,7 +3598,7 @@ function renderColumnVisibilityDropdown() {
                 }
 
                 if (!originalFileBuffer) { alert("열린 파일이 없습니다."); return; }
-                if (cellChanges.length === 0 && rowMoves.length === 0) {
+                if (cellChanges.length === 0 && rowMoves.length === 0 && rowDeletes.length === 0) {
                     showSaveOverlay();
                     setTimeout(function(){ showSaveResult('nochange',''); }, 150);
                     return;
@@ -3840,6 +3934,64 @@ function renderColumnVisibilityDropdown() {
                             }
                         }
 
+                        // ── rowDeletes 처리: 삭제된 행을 XML에서 제거 ──
+                        if (rowDeletes.length > 0) {
+                            var delBySrc = {};
+                            for (var di=0; di<rowDeletes.length; di++) {
+                                var dv = rowDeletes[di];
+                                var dSn = dv.sourceSheet;
+                                // 시트명 보정 (rowMoves와 동일 방식)
+                                if (!sheetMap[dSn]) {
+                                    var snIdx2 = currentSheetNames.indexOf(dSn);
+                                    var smKeys2 = Object.keys(sheetMap);
+                                    if (snIdx2 !== -1 && smKeys2[snIdx2]) dSn = smKeys2[snIdx2];
+                                    else if (smKeys2.length === 1) dSn = smKeys2[0];
+                                }
+                                if (!delBySrc[dSn]) delBySrc[dSn] = [];
+                                delBySrc[dSn].push(parseInt(dv.sourceRowRef));
+                            }
+                            for (var dSrcSn in delBySrc) {
+                                var dSrcSp = sheetMap[dSrcSn];
+                                if (!dSrcSp) { console.warn('[rowDelete] 시트 없음:', dSrcSn); continue; }
+                                var dSx = await zip.file(dSrcSp).async("string");
+                                var delNums = delBySrc[dSrcSn].sort(function(a,b){return a-b;});
+                                for (var ddi=0; ddi<delNums.length; ddi++) {
+                                    var rn3 = String(delNums[ddi]);
+                                    var dp = 0, dRowStart = -1, dRowEnd = -1;
+                                    while (true) {
+                                        var dRTag = 'r="' + rn3 + '"';
+                                        var dRPos = dSx.indexOf(dRTag, dp);
+                                        if (dRPos === -1) break;
+                                        var dts = dRPos;
+                                        while (dts > 0 && dSx[dts] !== '<') dts--;
+                                        var dAfter = dSx.slice(dts+1);
+                                        if (dAfter.match(/^(([a-zA-Z0-9_]+):)?row[\s>]/)) {
+                                            var dPfxM = dAfter.match(/^(([a-zA-Z0-9_]+):)?/);
+                                            var dPfx = dPfxM && dPfxM[2] ? dPfxM[2]+':' : '';
+                                            var dClose = '</'+dPfx+'row>';
+                                            var dEnd = dSx.indexOf(dClose, dts);
+                                            if (dEnd !== -1) { dRowStart = dts; dRowEnd = dEnd + dClose.length; break; }
+                                        }
+                                        dp = dRPos + 1;
+                                    }
+                                    if (dRowStart === -1) { console.warn('[rowDelete] 행 못찾음:', dSrcSn, rn3); continue; }
+                                    dSx = dSx.slice(0, dRowStart) + dSx.slice(dRowEnd);
+                                }
+                                // 삭제된 행 번호 이후 당기기
+                                for (var ddi2=0; ddi2<delNums.length; ddi2++) {
+                                    var delN2 = delNums[ddi2] - ddi2;
+                                    dSx = dSx.replace(/(<[a-zA-Z0-9_:]*row [^>]*r=")(\d+)(")/g, function(m,pre,num,post){
+                                        var n=parseInt(num); return n>delN2 ? pre+(n-1)+post : m; });
+                                    dSx = dSx.replace(/(<[a-zA-Z0-9_:]*c [^>]*r=")([A-Z]+)(\d+)(")/g, function(m,pre,col,num,post){
+                                        var n=parseInt(num); return n>delN2 ? pre+col+(n-1)+post : m; });
+                                }
+                                zip.file(dSrcSp, dSx);
+                                if (_affectedSheets.indexOf(dSrcSn) === -1) _affectedSheets.push(dSrcSn);
+                                savedSheetLog.push(dSrcSn + ': -' + delNums.length + '행 삭제');
+                                savedCount += delNums.length;
+                            }
+                        }
+
                         // calcChain 삭제 → Excel이 열릴 때 수식 전체 재계산 (참조 자동 갱신)
                         if (zip.file("xl/calcChain.xml")) { zip.remove("xl/calcChain.xml"); }
                         // workbook.xml의 fullCalcOnLoad 강제 활성화
@@ -4034,7 +4186,7 @@ function renderColumnVisibilityDropdown() {
                     }
 
                     addLog('save', { file: originalFileName, to: savedTo, changes: savedCount });
-                    cellChanges = []; rowMoves = [];
+                    cellChanges = []; rowMoves = []; rowDeletes = [];
                     for(var i=0;i<openFiles.length;i++){
                         if(openFiles[i].id===activeFileId && openFiles[i].sessionData){
                             openFiles[i].sessionData.cellChanges=[];
@@ -4338,6 +4490,9 @@ function renderColumnVisibilityDropdown() {
             
             const closeMoveBtn = document.getElementById('close-move-modal-btn');
             if(closeMoveBtn) closeMoveBtn.onclick = closeMoveModal;
+
+            var addSheetBtn = document.getElementById('add-sheet-btn');
+            if (addSheetBtn) addSheetBtn.onclick = addNewSheet;
 
             const bulkMoveBtn = document.getElementById('bulk-move-btn');
             if(bulkMoveBtn) {
@@ -4693,14 +4848,41 @@ function renderColumnVisibilityDropdown() {
             // ── 파일 로드 (워크스페이스에서 선택) ──
             // 파일 객체를 직접 받아서 비교 패널에 로드 (드래그앤드롭/input 공용)
             async function cmpLoadFileObject(side, file) {
-                showMiniLoader(side === 'left' ? '왼쪽 파일 로딩...' : '오른쪽 파일 로딩...');
+                var isXls = file.name.toLowerCase().endsWith('.xls');
+                showMiniLoader(isXls ? 'xls → xlsx 변환 중...' : (side === 'left' ? '왼쪽 파일 로딩...' : '오른쪽 파일 로딩...'));
                 try {
+                    // xls 변환 알림
+                    if (isXls) showToast('📄 ' + file.name + ' → xls 자동 변환 중...');
                     // 원본 버퍼 저장 (서식 보존 저장에 사용)
                     var rawBuf = null;
                     if (!file.name.toLowerCase().endsWith('.csv')) {
                         rawBuf = await file.arrayBuffer();
                     }
                     var wb = await cmpLoadWorkbook(file);
+                    // xls 변환 후 xlsx 다운로드 옵션 제공
+                    if (isXls) {
+                        var xlsxName = file.name.replace(/\.xls$/i, '.xlsx');
+                        var xlsWb = XLSX.read(rawBuf, { type: 'array', cellStyles: true, cellDates: true });
+                        var xlsxArr = XLSX.write(xlsWb, { type: 'array', bookType: 'xlsx' });
+                        var xlsxBlob = new Blob([xlsxArr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                        // 다운로드 배너
+                        (function(blob, name) {
+                            var banner = document.createElement('div');
+                            banner.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:#fff;border:1.5px solid #6366f1;border-radius:12px;padding:10px 18px;display:flex;align-items:center;gap:10px;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.15);font-size:12px;font-weight:700;color:#334155;white-space:nowrap';
+                            banner.innerHTML = '<span>📄 ' + name + ' 변환 완료</span>';
+                            var dlBtn = document.createElement('button');
+                            dlBtn.style.cssText = 'padding:5px 12px;background:#6366f1;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer';
+                            dlBtn.textContent = '⬇ xlsx 다운로드';
+                            dlBtn.onclick = function() { var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); banner.remove(); };
+                            var closeBtn = document.createElement('button');
+                            closeBtn.style.cssText = 'padding:3px 7px;background:#f1f5f9;color:#94a3b8;border:none;border-radius:6px;font-size:11px;cursor:pointer';
+                            closeBtn.textContent = '✕';
+                            closeBtn.onclick = function(){ banner.remove(); };
+                            banner.appendChild(dlBtn); banner.appendChild(closeBtn);
+                            document.body.appendChild(banner);
+                            setTimeout(function(){ if(banner.parentNode) banner.remove(); }, 8000);
+                        })(xlsxBlob, xlsxName);
+                    }
                     hideMiniLoader(0);
                     var sheetNames = wb.worksheets.map(function(ws){ return ws.name; });
                     var sheetIdx = await cmpShowSheetPicker(file.name, sheetNames);
