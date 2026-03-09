@@ -5976,6 +5976,16 @@ function renderColumnVisibilityDropdown() {
             // ── VLOOKUP+ 저장 / 내보내기 ──
             document.getElementById('cmp-vlookup-save-btn').onclick = async function() {
                 if (!cmpState.vlookupResult) return;
+                // ── user activation이 살아있는 동안 미리 권한 확인/요청 ──
+                if (currentDirectoryHandle) {
+                    try {
+                        var perm = await currentDirectoryHandle.queryPermission({ mode: 'readwrite' });
+                        if (perm !== 'granted') {
+                            perm = await currentDirectoryHandle.requestPermission({ mode: 'readwrite' });
+                            if (perm !== 'granted') { showToast('⚠️ 폴더 쓰기 권한이 거부되었습니다.'); return; }
+                        }
+                    } catch(permErr) { /* queryPermission 미지원 환경 무시 */ }
+                }
                 showMiniLoader('저장 준비 중...');
                 try {
                     var ls = cmpState.left;
