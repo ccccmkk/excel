@@ -1309,17 +1309,18 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             function extractDataAndStyle(cell, sheetName) {
                 let val = ""; let style = { strike: false, fontColor: null, bgColor: null, bold: false, italic: false, align: null, fontSize: null, fontFamily: null }; let formula = null;
                 if (!cell || cell.value === null || cell.value === undefined) return { value: "", style: style, ref: cell ? cell.address : "", formula: null };
-                // ── 날짜 판단: cell.numFmt 직접 참조 + _dateFmtIds 셋 보완 ──
+                // ── 날짜 판단: ①numFmt 패턴 ②numFmt=숫자ID→_dateFmtIds ③cell._model.style→_dateStyleIds 삼중 확인 ──
                 const fmt = (cell.numFmt || "");
                 if (cell.type === ExcelJS.ValueType.Formula) {
                     formula = cell.formula; let res = cell.result;
                     if(typeof res === 'number') {
-                        // 수식 결과가 숫자여도 날짜 서식이면 날짜로 표시
                         const fmtL2 = fmt.toLowerCase();
                         const fmtNumId2 = parseInt(fmt);
+                        const cellStyleIdx2 = (cell._model != null) ? cell._model.style : undefined;
                         const isDateFmt2 = fmtL2.includes('yy') || fmtL2.includes('dd') ||
                             fmtL2.includes('d/m') || fmtL2.includes('m/d') ||
-                            (!isNaN(fmtNumId2) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId2));
+                            (!isNaN(fmtNumId2) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId2)) ||
+                            (cellStyleIdx2 !== undefined && window._dateStyleIds && window._dateStyleIds.has(cellStyleIdx2));
                         if (isDateFmt2) val = excelSerialToDateStr(res, fmt);
                         else val = res.toLocaleString('ko-KR');
                     }
@@ -1327,13 +1328,14 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     else { val = String(res || ""); }
                 } else if (cell.type === ExcelJS.ValueType.Number) {
                     // 날짜 서식이 명시된 경우에만 날짜로 변환 (범위 기반 추정 제거)
-                    // 이전: isSerial(30000~60000) + General 포맷이면 날짜로 추정 → 숫자 금액이 잘못 변환되는 문제 있었음
-                    // cell.numFmt가 서식 문자열("yyyy-mm-dd") 또는 numFmtId 숫자("14") 를 반환하는 두 경우 모두 처리
+                    // 3단계: ①numFmt 문자열 패턴 ②numFmt가 숫자ID인 경우 _dateFmtIds ③cell._model.style→_dateStyleIds
                     const fmtL = fmt.toLowerCase();
                     const fmtNumId = parseInt(fmt);
+                    const cellStyleIdx = (cell._model != null) ? cell._model.style : undefined;
                     const isDateFmt = fmtL.includes('yy') || fmtL.includes('dd') ||
                         fmtL.includes('d/m') || fmtL.includes('m/d') ||
-                        (!isNaN(fmtNumId) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId));
+                        (!isNaN(fmtNumId) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId)) ||
+                        (cellStyleIdx !== undefined && window._dateStyleIds && window._dateStyleIds.has(cellStyleIdx));
                     if (isDateFmt) val = excelSerialToDateStr(cell.value, fmt);
                     else val = cell.value.toLocaleString('ko-KR');
                 } else if (cell.type === ExcelJS.ValueType.Date) {
@@ -2341,6 +2343,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
                         // styles.xml에서 numFmtId→날짜여부 맵 구축 (ExcelJS가 못읽는 경우 보완)
                         window._dateFmtIds = new Set([14,15,16,17,18,19,20,21,22,45,46,47]);
+                        window._dateStyleIds = new Set(); // cellXfs 스타일 인덱스 → 날짜 여부
                         try {
                             var stylesZip = await JSZip.loadAsync(originalFileBuffer.slice(0));
                             var stylesFile = stylesZip.file("xl/styles.xml");
@@ -2358,6 +2361,20 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                                         fmtCode.includes('mm') || fmtCode.includes('m/d') ||
                                         fmtCode.includes('d/m') || fmtCode.includes('h:')) {
                                         window._dateFmtIds.add(fmtId);
+                                    }
+                                }
+                                // <cellXfs> 파싱: 스타일 인덱스 → numFmtId 매핑 → _dateStyleIds 구축
+                                // cell._model.style(스타일 인덱스)로 직접 날짜 여부 판별하기 위함
+                                var cellXfsMatch = stylesXml.match(/<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/);
+                                if (cellXfsMatch) {
+                                    var xfRe = /<xf\b[^>]*>/g;
+                                    var xfM2; var xfIdx = 0;
+                                    while ((xfM2 = xfRe.exec(cellXfsMatch[1])) !== null) {
+                                        var xfNfId = xfM2[0].match(/numFmtId="(\d+)"/);
+                                        if (xfNfId && window._dateFmtIds.has(parseInt(xfNfId[1]))) {
+                                            window._dateStyleIds.add(xfIdx);
+                                        }
+                                        xfIdx++;
                                     }
                                 }
                             }
