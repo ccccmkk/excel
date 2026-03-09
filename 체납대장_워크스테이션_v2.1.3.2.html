@@ -813,6 +813,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                                     선택 <span id="selected-count" class="text-blue-600 ml-1 text-xs">0</span>
                                 </div>
                                 <button id="bulk-append-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors border-r border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700" title="선택한 행들에 데이터를 일괄로 덧붙입니다.">추가</button>
+                                <button id="bulk-bizno-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors border-r border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700" title="사업자번호로 법인/개인 구분">구분</button>
                                 <button id="bulk-move-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-700" title="선택한 행들을 다른 시트로 이동시킵니다.">이동</button>
                             </div>
                             <button id="undo-btn" disabled title="취소할 작업 없음"
@@ -1063,6 +1064,55 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <div class="flex gap-2">
                     <button id="close-append-modal-btn" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200">취소</button>
                     <button id="confirm-append-btn" class="flex-1 py-2.5 rounded-lg theme-bg text-white font-bold text-sm hover:opacity-90">일괄 추가</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===================== 사업자번호 구분 모달 ===================== -->
+        <div id="bizno-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[500] flex items-center justify-center opacity-0 transition-opacity duration-200">
+            <div class="bg-white p-7 rounded-2xl shadow-xl w-[440px] max-w-[95%]">
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-2xl">🏢</span>
+                    <h3 class="text-lg font-black text-slate-900">사업자번호 법인/개인 구분</h3>
+                </div>
+                <p class="text-[11px] text-slate-500 mb-5">사업자번호 열을 읽어 법인·개인을 자동 판별 후 지정 열에 씁니다.<br>사업자번호 형식이 아니면 <b>개인</b>으로 처리합니다 (주민번호 등).</p>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">📋 사업자번호 열 (읽기)</label>
+                        <select id="bizno-src-col" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">✏️ 결과 쓸 열</label>
+                        <select id="bizno-dst-col" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white"></select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">법인 라벨</label>
+                        <input type="text" id="bizno-corp-label" value="법인" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">개인 라벨</label>
+                        <input type="text" id="bizno-indv-label" value="개인" class="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+                    </div>
+                </div>
+
+                <label class="flex items-center gap-2 mb-4 cursor-pointer select-none">
+                    <input type="checkbox" id="bizno-selected-only" class="w-3.5 h-3.5 theme-check rounded">
+                    <span class="text-[11px] font-bold text-slate-600">선택한 행만 처리 (체크 해제 시 현재 필터 전체 행)</span>
+                </label>
+
+                <!-- 미리보기 -->
+                <div class="mb-5 bg-slate-50 rounded-xl p-3 border border-slate-200">
+                    <div class="text-[10px] font-black text-slate-400 uppercase mb-2">미리보기 (상위 5행)</div>
+                    <div id="bizno-preview" class="space-y-1 text-[11px] text-slate-600 font-medium"></div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button id="close-bizno-modal-btn" class="flex-1 py-2.5 rounded-lg bg-slate-100 text-slate-700 font-bold text-sm hover:bg-slate-200">취소</button>
+                    <button id="confirm-bizno-btn" class="flex-2 px-6 py-2.5 rounded-lg bg-indigo-600 text-white font-bold text-sm hover:bg-indigo-700">✅ 구분 적용</button>
                 </div>
             </div>
         </div>
@@ -2412,8 +2462,86 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             }
 
             function closeAppendModal() {
-                const m = document.getElementById('append-modal'); 
+                const m = document.getElementById('append-modal');
                 if (m) { m.classList.add('opacity-0'); setTimeout(function() { m.classList.add('hidden'); }, 200); }
+            }
+
+            // ── 사업자번호 법인/개인 구분 ──
+            // 가운데번호(4~5번째 자리) 기준:
+            //   81~88 → 법인 (영리/비영리/국가/외국법인)
+            //   그 외 (01~79, 80, 89, 90~99) → 개인
+            //   사업자번호 형식이 아니면 → 개인 (주민번호 등)
+            function classifyBizno(val) {
+                if (val === null || val === undefined || String(val).trim() === '') return null;
+                var digits = String(val).replace(/\D/g, '');
+                // 사업자번호: 9~11자리 (10자리 기본, 9자리=앞 0 생략, 11자리=검증번호 포함)
+                if (digits.length < 9 || digits.length > 11) return '개인';
+                // 자리수 보정: 9자리이면 앞에 0 추가
+                if (digits.length === 9) digits = '0' + digits;
+                var mid = parseInt(digits.substring(3, 5), 10);
+                if (mid >= 81 && mid <= 88) return '법인';
+                return '개인';
+            }
+
+            function openBiznoModal() {
+                var srcSel = document.getElementById('bizno-src-col');
+                var dstSel = document.getElementById('bizno-dst-col');
+                if (!srcSel || !dstSel) return;
+                srcSel.innerHTML = ''; dstSel.innerHTML = '';
+                headerStore.forEach(function(h, i) {
+                    var label = idxToColStr(i) + '열 - ' + (h || '(빈열)');
+                    var o1 = document.createElement('option'); o1.value = i; o1.textContent = label; srcSel.appendChild(o1);
+                    var o2 = document.createElement('option'); o2.value = i; o2.textContent = label; dstSel.appendChild(o2);
+                });
+                // 사업자/등록번호 관련 열 자동 선택
+                var autoSrc = -1;
+                for (var i = 0; i < headerStore.length; i++) {
+                    var h = String(headerStore[i] || '').replace(/\s/g,'');
+                    if (h.includes('사업자') || h.includes('등록번호') || h.includes('법인번호') || h.includes('사업장번호')) { autoSrc = i; break; }
+                }
+                if (autoSrc >= 0) srcSel.value = autoSrc;
+                // 구분/종류 관련 열 자동 선택
+                var autoDst = -1;
+                for (var i = 0; i < headerStore.length; i++) {
+                    var h2 = String(headerStore[i] || '').replace(/\s/g,'');
+                    if (h2 === '구분' || h2 === '납세자구분' || h2 === '법인개인' || h2.includes('구분')) { autoDst = i; break; }
+                }
+                if (autoDst >= 0) dstSel.value = autoDst;
+                document.getElementById('bizno-selected-only').checked = selectedRowRefs.size > 0;
+                updateBiznoPreview();
+                ['bizno-src-col','bizno-dst-col'].forEach(function(id){
+                    document.getElementById(id).onchange = updateBiznoPreview;
+                });
+                var m = document.getElementById('bizno-modal');
+                if (m) { m.classList.remove('hidden'); setTimeout(function(){ m.classList.remove('opacity-0'); }, 10); }
+            }
+
+            function closeBiznoModal() {
+                var m = document.getElementById('bizno-modal');
+                if (m) { m.classList.add('opacity-0'); setTimeout(function(){ m.classList.add('hidden'); }, 200); }
+            }
+
+            function updateBiznoPreview() {
+                var previewEl = document.getElementById('bizno-preview');
+                if (!previewEl) return;
+                var srcIdx = parseInt(document.getElementById('bizno-src-col').value);
+                var corpLabel = document.getElementById('bizno-corp-label').value || '법인';
+                var indvLabel = document.getElementById('bizno-indv-label').value || '개인';
+                var rows = filteredDataStore.slice(0, 5);
+                if (!rows.length) { previewEl.innerHTML = '<span class="text-slate-400">데이터 없음</span>'; return; }
+                previewEl.innerHTML = '';
+                rows.forEach(function(row) {
+                    var cell = row[srcIdx];
+                    var rawVal = cell ? String(cell.value || '') : '';
+                    var result = classifyBizno(rawVal);
+                    var label = result === '법인' ? corpLabel : (result === '개인' ? indvLabel : '-');
+                    var color = result === '법인' ? '#4f46e5' : '#0891b2';
+                    var line = document.createElement('div');
+                    line.style.cssText = 'display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px solid #f1f5f9';
+                    line.innerHTML = '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b">' + (rawVal || '<em style="color:#cbd5e1">빈값</em>') + '</span>'
+                        + '<span style="font-weight:900;color:' + color + ';min-width:36px;text-align:right">' + label + '</span>';
+                    previewEl.appendChild(line);
+                });
             }
 
             // ==========================================
@@ -4624,6 +4752,63 @@ function renderColumnVisibilityDropdown() {
                     }
                     selectedRowRefs.clear(); updateSelectedCountUI(); closeAppendModal();
                     showToast("✅ " + updatedCount + "개 행에 데이터 추가 완료");
+                };
+            }
+
+            // ── 사업자번호 구분 버튼/모달 이벤트 ──
+            var bulkBiznoBtn = document.getElementById('bulk-bizno-btn');
+            if (bulkBiznoBtn) bulkBiznoBtn.onclick = openBiznoModal;
+
+            var closeBiznoBtn = document.getElementById('close-bizno-modal-btn');
+            if (closeBiznoBtn) closeBiznoBtn.onclick = closeBiznoModal;
+
+            ['bizno-corp-label','bizno-indv-label'].forEach(function(id){
+                var el = document.getElementById(id);
+                if (el) el.oninput = updateBiznoPreview;
+            });
+
+            var confirmBiznoBtn = document.getElementById('confirm-bizno-btn');
+            if (confirmBiznoBtn) {
+                confirmBiznoBtn.onclick = function() {
+                    var srcIdx = parseInt(document.getElementById('bizno-src-col').value);
+                    var dstIdx = parseInt(document.getElementById('bizno-dst-col').value);
+                    var corpLabel = document.getElementById('bizno-corp-label').value.trim() || '법인';
+                    var indvLabel = document.getElementById('bizno-indv-label').value.trim() || '개인';
+                    var selectedOnly = document.getElementById('bizno-selected-only').checked;
+                    if (isNaN(srcIdx) || isNaN(dstIdx)) return alert('열을 선택하세요.');
+                    var targetRows = filteredDataStore.filter(function(row) {
+                        return !selectedOnly || selectedRowRefs.has(row.r);
+                    });
+                    if (!targetRows.length) return alert('처리할 행이 없습니다.');
+                    var updatedCount = 0;
+                    targetRows.forEach(function(row) {
+                        var srcCell = row[srcIdx];
+                        var rawVal = srcCell ? String(srcCell.value || '') : '';
+                        var result = classifyBizno(rawVal);
+                        if (result === null) return; // 완전히 빈 값은 건너뜀
+                        var newVal = result === '법인' ? corpLabel : indvLabel;
+                        var dstCell = row[dstIdx];
+                        if (!dstCell) {
+                            var ref = idxToColStr(dstIdx) + (row.originalR || row.r);
+                            dstCell = { value: '', style: {}, ref: ref, formula: null };
+                            row[dstIdx] = dstCell;
+                        }
+                        if (String(dstCell.value || '') !== newVal) {
+                            dstCell.value = newVal;
+                            var cc = cellChanges;
+                            cellChanges = cc.filter(function(c){ return !(c.sheetName === currentActiveSheetName && c.ref === dstCell.ref); });
+                            cellChanges.push({ sheetName: currentActiveSheetName, ref: dstCell.ref, value: newVal, formula: null });
+                            cellValueMap.set(dstCell.ref, newVal);
+                            updatedCount++;
+                        }
+                    });
+                    if (updatedCount > 0) {
+                        markCurrentFileModified();
+                        addLog('edit', { sheet: currentActiveSheetName, ref: '사업자구분', old: '-', new: corpLabel + '/' + indvLabel });
+                        triggerRecalculation(null); executeIntegratedSearch();
+                    }
+                    closeBiznoModal();
+                    showToast('✅ ' + updatedCount + '개 행 법인/개인 구분 완료');
                 };
             }
 
