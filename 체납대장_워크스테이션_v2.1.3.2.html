@@ -1309,17 +1309,31 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             function extractDataAndStyle(cell, sheetName) {
                 let val = ""; let style = { strike: false, fontColor: null, bgColor: null, bold: false, italic: false, align: null, fontSize: null, fontFamily: null }; let formula = null;
                 if (!cell || cell.value === null || cell.value === undefined) return { value: "", style: style, ref: cell ? cell.address : "", formula: null };
-                // ── 날짜 판단: cell.numFmt 직접 참조 (옛날버전 검증된 로직) ──
+                // ── 날짜 판단: cell.numFmt 직접 참조 + _dateFmtIds 셋 보완 ──
                 const fmt = (cell.numFmt || "");
                 if (cell.type === ExcelJS.ValueType.Formula) {
                     formula = cell.formula; let res = cell.result;
-                    if(typeof res === 'number') { val = res.toLocaleString('ko-KR'); }
+                    if(typeof res === 'number') {
+                        // 수식 결과가 숫자여도 날짜 서식이면 날짜로 표시
+                        const fmtL2 = fmt.toLowerCase();
+                        const fmtNumId2 = parseInt(fmt);
+                        const isDateFmt2 = fmtL2.includes('yy') || fmtL2.includes('dd') ||
+                            fmtL2.includes('d/m') || fmtL2.includes('m/d') ||
+                            (!isNaN(fmtNumId2) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId2));
+                        if (isDateFmt2) val = excelSerialToDateStr(res, fmt);
+                        else val = res.toLocaleString('ko-KR');
+                    }
                     else if(res instanceof Date) { val = res.toLocaleDateString('ko-KR'); }
                     else { val = String(res || ""); }
                 } else if (cell.type === ExcelJS.ValueType.Number) {
                     // 날짜 서식이 명시된 경우에만 날짜로 변환 (범위 기반 추정 제거)
                     // 이전: isSerial(30000~60000) + General 포맷이면 날짜로 추정 → 숫자 금액이 잘못 변환되는 문제 있었음
-                    const isDateFmt = fmt.includes('yy') || fmt.includes('mm') || fmt.includes('dd');
+                    // cell.numFmt가 서식 문자열("yyyy-mm-dd") 또는 numFmtId 숫자("14") 를 반환하는 두 경우 모두 처리
+                    const fmtL = fmt.toLowerCase();
+                    const fmtNumId = parseInt(fmt);
+                    const isDateFmt = fmtL.includes('yy') || fmtL.includes('dd') ||
+                        fmtL.includes('d/m') || fmtL.includes('m/d') ||
+                        (!isNaN(fmtNumId) && window._dateFmtIds && window._dateFmtIds.has(fmtNumId));
                     if (isDateFmt) val = excelSerialToDateStr(cell.value, fmt);
                     else val = cell.value.toLocaleString('ko-KR');
                 } else if (cell.type === ExcelJS.ValueType.Date) {
