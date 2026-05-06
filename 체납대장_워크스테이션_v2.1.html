@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.6.1  (2026-05-06) [최신]
+  v2.1.6.2  (2026-05-06) [최신]
+    - [개선] 셀 진입 시(클릭·방향키) 커서 항상 텍스트 맨 끝으로 이동
+
+  v2.1.6.1  (2026-05-06)
     - [수정] 저장 후 Excel 복구 다이얼로그 수정: sharedStrings count/uniqueCount 제거 (OOXML optional)
 
   v2.1.6.0  (2026-05-06)
@@ -85,7 +88,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.6.1</title>
+    <title>체납대장 분석 워크스테이션 v2.1.6.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -620,7 +623,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.1</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.2</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1144,6 +1147,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.6.2</strong>: 셀 진입 시(클릭·방향키) 커서 항상 텍스트 맨 끝으로 이동</p>
                                 <p><strong class="theme-text">v2.1.6.1</strong>: 저장 후 Excel 복구 다이얼로그 수정 — sharedStrings count 불일치 제거</p>
                                 <p><strong class="theme-text">v2.1.6.0</strong>: 자동 백업 시스템 — backup/ 폴더에 daily/session 백업 원본 복사, 설정 on/off 토글</p>
                                 <p><strong class="theme-text">v2.1.5.3</strong>: 웹도구 패널 리사이즈 렉 수정(iframe pointer-events 차단), 패널 숨기기/보이기 토글 추가</p>
@@ -3703,7 +3707,21 @@ function renderColumnVisibilityDropdown() {
                             if (cInfo.style.wrap) { td.style.whiteSpace = "pre-wrap"; td.style.overflow = "visible"; td.style.maxWidth = "300px"; }
                             if (cInfo.formula || (mod && mod.formula)) td.classList.add('has-formula');
                             td.contentEditable = "true";
-                            td.onfocus = function() { const curF = mod ? mod.formula : cInfo.formula; if (curF) this.textContent = '=' + curF; };
+                            td.onfocus = function() {
+                                const curF = mod ? mod.formula : cInfo.formula;
+                                if (curF) this.textContent = '=' + curF;
+                                var el = this;
+                                setTimeout(function() {
+                                    try {
+                                        var range = document.createRange();
+                                        var sel = window.getSelection();
+                                        range.selectNodeContents(el);
+                                        range.collapse(false); // 맨 끝
+                                        sel.removeAllRanges();
+                                        sel.addRange(range);
+                                    } catch(e) {}
+                                }, 0);
+                            };
                             td.onblur = function() {
                                 const input = this.textContent.trim();
                                 const curVal = mod ? mod.value : cInfo.value;
