@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.5.1  (2026-05-06) [최신]
+  v2.1.5.2  (2026-05-06) [최신]
+    - [개선] 헤더 컴팩트 리디자인: 단일 얇은 바로 축소, 버튼 아이콘 전용, gap 축소
+
+  v2.1.5.1  (2026-05-06)
     - [추가] 폴더별 설정파일 (.workstation_config.json) 자동 저장/불러오기
     - [수정] 리사이즈 버벅임 수정 (드래그 중 transition 비활성화)
     - [수정] 탐색기 숨김 시 리사이저도 함께 숨김
@@ -70,7 +73,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.5.1</title>
+    <title>체납대장 분석 워크스테이션 v2.1.5.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -489,6 +492,10 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             background: var(--theme-color, #3b82f6);
         }
 
+        /* 헤더 파일명 표시 시 placeholder 숨김 */
+        #file-info-header:not(.hidden) ~ #file-info-placeholder,
+        #file-info-header.flex ~ #file-info-placeholder { display: none; }
+
         /* html-panel 리사이저 */
         #html-panel-resizer {
             width: 8px;
@@ -595,34 +602,38 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
 
-        <div class="flex-1 min-w-0 flex flex-col gap-4 h-full relative overflow-hidden" id="center-main-panel">
+        <div class="flex-1 min-w-0 flex flex-col gap-2 h-full relative overflow-hidden" id="center-main-panel">
             
-            <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 flex-shrink-0 z-20">
-                <div class="flex flex-col gap-1">
-                    <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.5.1</span>
-                    </h1>
-                    <div id="file-info-header" class="hidden items-center gap-2 mt-1">
-                        <span class="text-xs font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded bg-slate-50">현재 파일</span>
-                        <span id="current-file-name" class="text-sm font-black theme-text truncate max-w-[400px]"></span>
-                    </div>
+            <header class="bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 flex-shrink-0 z-20 min-h-0">
+                <!-- 타이틀 -->
+                <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
+                <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.5.2</span>
+                <!-- 구분선 -->
+                <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
+                <!-- 현재 파일 -->
+                <div id="file-info-header" class="hidden items-center gap-1.5 min-w-0 flex-1">
+                    <span class="text-[10px] font-bold text-slate-400 flex-shrink-0">파일</span>
+                    <span id="current-file-name" class="text-xs font-black theme-text truncate"></span>
                 </div>
-
-                <div class="flex items-center gap-2 self-end xl:self-auto">
-                    <!-- 앱 다운로드 버튼 -->
-                    <button id="download-app-btn" onclick="downloadThisApp()" class="px-3 py-2 bg-white border border-slate-200 hover:bg-blue-50 text-slate-600 font-bold rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 whitespace-nowrap" title="이 HTML 앱 파일 다운로드">
+                <div id="file-info-placeholder" class="flex-1 min-w-0"></div>
+                <!-- 버튼들 -->
+                <div class="flex items-center gap-1 flex-shrink-0 ml-auto">
+                    <button id="download-app-btn" onclick="downloadThisApp()" class="p-1.5 bg-white border border-slate-200 hover:bg-blue-50 text-slate-500 rounded-lg transition-colors" title="앱 HTML 다운로드">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        앱 저장
                     </button>
-                    <!-- 폴더 열기 전: 설정만 -->
-                    <button id="settings-btn" class="px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 whitespace-nowrap">⚙️ 설정</button>
-                    <!-- 폴더 열린 후 추가 버튼들 -->
-                    <button id="toggle-history-btn" class="hidden px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 whitespace-nowrap">📜 작업이력</button>
-                    <button id="toggle-memo-btn" class="hidden px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-lg text-xs transition-colors shadow-sm flex items-center gap-1.5 whitespace-nowrap">📝 메모장</button>
-                    <!-- 특수기능: 폴더 열린 후 헤더에 표시 (파일 안 열어도 사용 가능) -->
+                    <button id="settings-btn" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="설정">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button id="toggle-history-btn" class="hidden p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="작업이력">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <button id="toggle-memo-btn" class="hidden p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="메모장">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
                     <div class="hidden relative" id="special-func-header-wrap">
-                        <button id="special-func-btn" class="flex-shrink-0 flex items-center gap-1.5 bg-violet-600 hover:bg-violet-700 text-white border border-violet-700 rounded-lg px-3 py-1.5 text-xs font-bold transition-colors shadow-sm whitespace-nowrap">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <button id="special-func-btn" class="flex items-center gap-1 bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold transition-colors whitespace-nowrap" title="특수기능">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                             특수기능 ▾
                         </button>
                         <div id="special-func-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);min-width:220px;z-index:9999;padding:6px">
@@ -641,7 +652,6 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             </button>
                         </div>
                     </div>
-                    <!-- more-menu-wrap 호환성 유지 (숨김) -->
                     <div class="hidden" id="more-menu-wrap"><div id="more-menu-dropdown" style="display:none"></div></div>
                 </div>
             </header>
@@ -1100,6 +1110,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.5.2</strong>: 헤더 컴팩트 리디자인 — 단일 얇은 바, 버튼 아이콘 전용으로 데이터 공간 확보</p>
                                 <p><strong class="theme-text">v2.1.5.1</strong>: 폴더별 설정파일(.workstation_config.json) 자동 저장/불러오기, 리사이즈 버벅임 수정(드래그 중 transition 비활성화), 탐색기 숨김 시 리사이저도 함께 숨김</p>
                                 <p><strong class="theme-text">v2.1.5.0</strong>: 앱 HTML 다운로드 버튼(헤더), 웹 도구 패널(html-panel) 드래그 리사이즈 지원</p>
                                 <p><strong class="theme-text">v2.1.4.3</strong>: 열 필터 행 토글 버튼 스마트필터와 동일 방식으로 통일, 사이드바 리사이저 너비 확대, 한셀 파일 서식 sanitize 강화</p>
