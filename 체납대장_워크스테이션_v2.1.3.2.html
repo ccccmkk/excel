@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.4.0  (2026-05-05) [최신]
+  v2.1.4.1  (2026-05-05) [최신]
+    - [개선] 열 필터 행 기본 숨김 → # 헤더셀 ▾ 클릭으로 토글 (상태 기억)
+    - [개선] 스마트 필터 기본 숨김 → 검색바 우측 🔎 아이콘으로 토글 (상태 기억)
+
+  v2.1.4.0  (2026-05-05)
     - [추가] 열 프리셋: 현재 열 표시/숨김 + 너비를 이름으로 저장 → 다른 파일에 재적용
     - [추가] 사이드바(탐색기) 드래그 리사이즈
     - [추가] 데이터 비교 좌/우 패널 드래그 리사이즈
@@ -49,7 +53,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.4.0</title>
+    <title>체납대장 분석 워크스테이션 v2.1.4.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -538,7 +542,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 flex-shrink-0 z-20">
                 <div class="flex flex-col gap-1">
                     <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.0</span>
+                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.1</span>
                     </h1>
                     <div id="file-info-header" class="hidden items-center gap-2 mt-1">
                         <span class="text-xs font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded bg-slate-50">현재 파일</span>
@@ -800,6 +804,9 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                                 </div>
                                 <button id="toggle-filter-btn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg shadow-sm transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300" title="상세 필터 설정">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                </button>
+                                <button id="smart-filter-toggle-btn" class="bg-white border border-slate-200 hover:bg-violet-50 text-slate-300 p-1.5 rounded-lg shadow-sm transition-colors" title="스마트 필터 (열이름:조건 복합 필터)">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </button>
                                 
                                 <div id="filter-popup" class="hidden absolute top-full left-0 md:right-0 mt-2 w-80 bg-white border border-slate-200 shadow-xl rounded-xl p-4 z-[250] flex-col gap-4 dark:bg-slate-800 dark:border-slate-700">
@@ -1275,6 +1282,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             let filteredDataStore = [];
             let headerStore = [];
             var colWidthCache = {};
+            var _colFilterVisible = (localStorage.getItem('colFilterVisible') === 'true');
+            var _smartFilterVisible = (localStorage.getItem('smartFilterVisible') === 'true');
             let currentSheetNames = [];
             let currentActiveSheetName = "";
             let parsedSheetsCache = {};
@@ -2922,8 +2931,8 @@ function renderColumnVisibilityDropdown() {
                 // ── 행번호 헤더 ──
                 const numTh = document.createElement('th');
                 numTh.className = "p-1 w-9 text-center sticky left-0 z-30 bg-slate-50 dark:bg-slate-800";
-                numTh.style.cssText = "min-width:36px;max-width:36px;border-right:1px solid #e2e8f0;font-size:9px;color:#94a3b8";
-                numTh.textContent = '#';
+                numTh.style.cssText = "min-width:36px;max-width:36px;border-right:1px solid #e2e8f0;font-size:9px;color:#94a3b8;cursor:default;";
+                numTh.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;line-height:1.2"><span>#</span><button id="col-filter-toggle-btn" title="열 필터 표시/숨기기" style="font-size:9px;color:#cbd5e1;background:none;border:none;cursor:pointer;padding:0;line-height:1;transition:color .15s" onclick="event.stopPropagation()">' + (_colFilterVisible ? '▴' : '▾') + '</button></div>';
                 head.appendChild(numTh);
                 filterRow.appendChild(document.createElement('th')); // 행번호 필터칸 (빈칸)
 
@@ -3034,6 +3043,9 @@ function renderColumnVisibilityDropdown() {
                     for(let i=0; i<cbs.length; i++) cbs[i].checked = checked;
                     updateSelectedCountUI();
                 };
+                // 필터 행 가시성 적용
+                var _fRow = document.getElementById('thead-filter-row');
+                if (_fRow) _fRow.style.display = _colFilterVisible ? '' : 'none';
             }
 
             // ── 메인 테이블 정렬/필터/고정 상태 ──
@@ -6722,6 +6734,35 @@ function renderColumnVisibilityDropdown() {
                     saveColPresetAs();
                 });
             }
+
+            // ── 열 필터 행 토글 (이벤트 위임: renderHeader마다 재생성되므로) ──
+            document.addEventListener('click', function(e) {
+                if (e.target && e.target.id === 'col-filter-toggle-btn') {
+                    e.stopPropagation();
+                    _colFilterVisible = !_colFilterVisible;
+                    localStorage.setItem('colFilterVisible', _colFilterVisible);
+                    var fr = document.getElementById('thead-filter-row');
+                    if (fr) fr.style.display = _colFilterVisible ? '' : 'none';
+                    e.target.textContent = _colFilterVisible ? '▴' : '▾';
+                    e.target.style.color = _colFilterVisible ? 'var(--theme-color)' : '#cbd5e1';
+                }
+            });
+
+            // ── 스마트 필터 토글 ──
+            (function() {
+                var sfRow = document.getElementById('smart-filter-row');
+                var sfBtn = document.getElementById('smart-filter-toggle-btn');
+                function applySmartFilterVisibility() {
+                    if (sfRow) sfRow.style.display = _smartFilterVisible ? '' : 'none';
+                    if (sfBtn) sfBtn.style.color = _smartFilterVisible ? '#8b5cf6' : '';
+                }
+                applySmartFilterVisibility();
+                if (sfBtn) sfBtn.onclick = function() {
+                    _smartFilterVisible = !_smartFilterVisible;
+                    localStorage.setItem('smartFilterVisible', _smartFilterVisible);
+                    applySmartFilterVisibility();
+                };
+            })();
 
             // ════════════════════════════════════════════════════════════════
             // 사이드바 드래그 리사이즈
