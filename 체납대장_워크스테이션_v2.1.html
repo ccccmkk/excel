@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.5.2  (2026-05-06) [최신]
+  v2.1.5.3  (2026-05-06) [최신]
+    - [수정] 웹도구 패널 리사이즈 렉: iframe pointer-events 차단으로 해결
+    - [추가] 웹도구 패널 숨기기/보이기 토글 (우측 가장자리 버튼)
+
+  v2.1.5.2  (2026-05-06)
     - [개선] 헤더 컴팩트 리디자인: 단일 얇은 바로 축소, 버튼 아이콘 전용, gap 축소
 
   v2.1.5.1  (2026-05-06)
@@ -73,7 +77,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.5.2</title>
+    <title>체납대장 분석 워크스테이션 v2.1.5.3</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -608,7 +612,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.5.2</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.5.3</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1033,16 +1037,23 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
         <div id="html-panel-resizer"></div>
         <div id="html-panel" class="hidden w-[450px] bg-white rounded-2xl shadow-sm border border-slate-200 flex-col flex-shrink-0 h-full z-10 relative overflow-hidden">
-            <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0">
-                <h3 class="text-sm font-black text-slate-700 flex items-center gap-2">
-                    <span>🌐</span> <span id="current-html-file-name" class="truncate max-w-[250px]">웹 도구 뷰어</span>
+            <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0 gap-2">
+                <h3 class="text-xs font-black text-slate-700 flex items-center gap-1.5 min-w-0">
+                    <span>🌐</span> <span id="current-html-file-name" class="truncate">웹 도구 뷰어</span>
                 </h3>
-                <button id="close-html-btn" class="text-[11px] bg-white border border-slate-300 text-slate-600 hover:text-slate-900 font-bold px-2 py-1 rounded shadow-sm transition-colors dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300">✕ 닫기</button>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <button id="hide-html-btn" class="text-[10px] bg-white border border-slate-300 text-slate-500 hover:text-slate-800 font-bold px-2 py-0.5 rounded shadow-sm transition-colors" title="패널 숨기기 (내용 유지)">숨기기</button>
+                    <button id="close-html-btn" class="text-[10px] bg-white border border-slate-300 text-slate-500 hover:text-red-600 font-bold px-2 py-0.5 rounded shadow-sm transition-colors" title="패널 닫기 (내용 초기화)">✕</button>
+                </div>
             </div>
             <div class="flex-1 w-full bg-white relative">
                 <iframe id="html-iframe" class="absolute inset-0 w-full h-full border-0 bg-white" allow="clipboard-read; clipboard-write"></iframe>
             </div>
         </div>
+        <!-- html-panel 숨김 상태일 때 우측 가장자리 show 버튼 -->
+        <button id="show-html-btn" class="hidden fixed right-0 top-1/2 -translate-y-1/2 bg-white border border-slate-200 shadow-md rounded-l-xl py-4 px-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 z-[100] transition-all" title="웹 도구 패널 열기">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
 
         <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[500] flex items-center justify-center opacity-0 transition-opacity duration-200">
             <div class="bg-white rounded-2xl shadow-xl w-[520px] max-w-[95vw] flex flex-col max-h-[90vh]">
@@ -1110,6 +1121,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.5.3</strong>: 웹도구 패널 리사이즈 렉 수정(iframe pointer-events 차단), 패널 숨기기/보이기 토글 추가</p>
                                 <p><strong class="theme-text">v2.1.5.2</strong>: 헤더 컴팩트 리디자인 — 단일 얇은 바, 버튼 아이콘 전용으로 데이터 공간 확보</p>
                                 <p><strong class="theme-text">v2.1.5.1</strong>: 폴더별 설정파일(.workstation_config.json) 자동 저장/불러오기, 리사이즈 버벅임 수정(드래그 중 transition 비활성화), 탐색기 숨김 시 리사이저도 함께 숨김</p>
                                 <p><strong class="theme-text">v2.1.5.0</strong>: 앱 HTML 다운로드 버튼(헤더), 웹 도구 패널(html-panel) 드래그 리사이즈 지원</p>
@@ -1847,12 +1859,34 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             }
 
             const closeHtmlBtn = document.getElementById('close-html-btn');
+            var showHtmlBtn = document.getElementById('show-html-btn');
+            var hideHtmlBtn = document.getElementById('hide-html-btn');
+
+            function htmlPanelSetVisible(visible) {
+                var panel = document.getElementById('html-panel');
+                if (visible) {
+                    panel.classList.remove('hidden');
+                    panel.classList.add('flex');
+                    if (showHtmlBtn) showHtmlBtn.classList.add('hidden');
+                } else {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                    if (showHtmlBtn) showHtmlBtn.classList.remove('hidden');
+                }
+            }
+
             if (closeHtmlBtn) {
                 closeHtmlBtn.onclick = function() {
-                    document.getElementById('html-panel').classList.add('hidden');
-                    document.getElementById('html-panel').classList.remove('flex');
+                    htmlPanelSetVisible(false);
                     document.getElementById('html-iframe').srcdoc = '';
+                    document.getElementById('html-iframe').src = '';
                 };
+            }
+            if (hideHtmlBtn) {
+                hideHtmlBtn.onclick = function() { htmlPanelSetVisible(false); };
+            }
+            if (showHtmlBtn) {
+                showHtmlBtn.onclick = function() { htmlPanelSetVisible(true); };
             }
 
             const openFolderBtnSm = document.getElementById('open-folder-btn-sm');
@@ -7072,6 +7106,8 @@ function renderColumnVisibilityDropdown() {
                 var observer = new MutationObserver(function() {
                     var visible = !panel.classList.contains('hidden') && panel.style.display !== 'none';
                     resizer.classList.toggle('visible', visible);
+                    var showBtn = document.getElementById('show-html-btn');
+                    if (showBtn) showBtn.classList.toggle('hidden', visible);
                 });
                 observer.observe(panel, { attributes: true, attributeFilter: ['class', 'style'] });
 
@@ -7081,6 +7117,9 @@ function renderColumnVisibilityDropdown() {
                 resizer.addEventListener('mousedown', function(e) {
                     e.preventDefault();
                     panel.classList.add('no-transition');
+                    // iframe이 mousemove 이벤트를 가로채지 못하게 차단
+                    var iframe = document.getElementById('html-iframe');
+                    if (iframe) iframe.style.pointerEvents = 'none';
                     var startX = e.clientX, startW = panel.offsetWidth;
                     var lastW = startW;
                     document.body.style.userSelect = 'none';
@@ -7091,6 +7130,7 @@ function renderColumnVisibilityDropdown() {
                         panel.style.width = lastW + 'px';
                     };
                     var onUp = function() {
+                        if (iframe) iframe.style.pointerEvents = '';
                         panel.classList.remove('no-transition');
                         localStorage.setItem('htmlPanelWidth', lastW + 'px');
                         saveWorkstationConfig();
