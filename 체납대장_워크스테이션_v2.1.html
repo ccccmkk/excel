@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.6.0  (2026-05-06) [최신]
+  v2.1.6.1  (2026-05-06) [최신]
+    - [수정] 저장 후 Excel 복구 다이얼로그 수정: sharedStrings count/uniqueCount 제거 (OOXML optional)
+
+  v2.1.6.0  (2026-05-06)
     - [추가] 자동 백업 시스템: 파일 열람·저장 시 backup/ 폴더에 원본 바이트 복사
     - [추가] daily 백업(하루 첫 열람), session 백업(열람·저장마다 갱신) 구분
     - [추가] 설정 > 일반 탭에 백업 on/off 토글 추가
@@ -82,7 +85,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.6.0</title>
+    <title>체납대장 분석 워크스테이션 v2.1.6.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -617,7 +620,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.0</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.1</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1141,6 +1144,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.6.1</strong>: 저장 후 Excel 복구 다이얼로그 수정 — sharedStrings count 불일치 제거</p>
                                 <p><strong class="theme-text">v2.1.6.0</strong>: 자동 백업 시스템 — backup/ 폴더에 daily/session 백업 원본 복사, 설정 on/off 토글</p>
                                 <p><strong class="theme-text">v2.1.5.3</strong>: 웹도구 패널 리사이즈 렉 수정(iframe pointer-events 차단), 패널 숨기기/보이기 토글 추가</p>
                                 <p><strong class="theme-text">v2.1.5.2</strong>: 헤더 컴팩트 리디자인 — 단일 얇은 바, 버튼 아이콘 전용으로 데이터 공간 확보</p>
@@ -4590,6 +4594,18 @@ function renderColumnVisibilityDropdown() {
 
                         // calcChain 삭제 → Excel이 열릴 때 수식 전체 재계산 (참조 자동 갱신)
                         if (zip.file("xl/calcChain.xml")) { zip.remove("xl/calcChain.xml"); }
+
+                        // sharedStrings count/uniqueCount 제거
+                        // t="inlineStr"로 변환된 셀은 SST를 참조하지 않으므로 count가 달라짐.
+                        // 두 속성은 OOXML optional이라 제거하면 Excel이 열 때 자동 재계산 → 복구 다이얼로그 방지
+                        try {
+                            var sstFile = zip.file("xl/sharedStrings.xml");
+                            if (sstFile) {
+                                var sstXml = await sstFile.async("string");
+                                sstXml = sstXml.replace(/\s+count="\d+"/g, '').replace(/\s+uniqueCount="\d+"/g, '');
+                                zip.file("xl/sharedStrings.xml", sstXml);
+                            }
+                        } catch(e) { console.warn('[save] sst count 제거 실패:', e); }
                         // workbook.xml의 fullCalcOnLoad 강제 활성화
                         try {
                             var wbXml2 = await zip.file("xl/workbook.xml").async("string");
