@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.7.0  (2026-05-06) [최신]
+  v2.1.7.1  (2026-05-06) [최신]
+    - [수정] 복구 시 현재 파일 덮어쓰기 → 같은 폴더에 "_복구됨" 파일 새로 생성
+
+  v2.1.7.0  (2026-05-06)
     - [추가] .wstation/ 통합 폴더 (config, backup, logs 하위 구성)
     - [추가] 저장 시 변경 로그 기록 (.wstation/logs/changes_날짜.json)
     - [추가] 설정 > 복구 탭: 백업 파일 목록·저장 이력·복구하기 버튼
@@ -93,7 +96,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.7.0</title>
+    <title>체납대장 분석 워크스테이션 v2.1.7.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -628,7 +631,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.7.0</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.7.1</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1153,6 +1156,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.7.1</strong>: 복구 시 "_복구됨" 파일 새로 생성 (덮어쓰기 방지)</p>
                                 <p><strong class="theme-text">v2.1.7.0</strong>: .wstation/ 통합 폴더, 변경 로그, 복구 탭 추가</p>
                                 <p><strong class="theme-text">v2.1.6.2</strong>: 셀 진입 시(클릭·방향키) 커서 항상 텍스트 맨 끝으로 이동</p>
                                 <p><strong class="theme-text">v2.1.6.1</strong>: 저장 후 Excel 복구 다이얼로그 수정 — sharedStrings count 불일치 제거</p>
@@ -5186,19 +5190,21 @@ function renderColumnVisibilityDropdown() {
                             + '</div>';
 
                         div.querySelector('.restore-btn').onclick = async function() {
-                            if (!confirm(item.label + ' 파일로 복구하시겠습니까?\n현재 열린 파일이 교체됩니다.')) return;
+                            if (!confirm(item.label + ' 파일로 복구하시겠습니까?\n현재 작업 폴더에 "_복구됨" 파일이 새로 생성됩니다.')) return;
                             try {
                                 var buf = await item.file.arrayBuffer();
-                                if (currentFileHandle) {
-                                    var w = await currentFileHandle.createWritable();
-                                    await w.write(buf);
-                                    await w.close();
-                                    showToast('✅ 복구 완료. 파일을 다시 불러옵니다.');
-                                    var f = await currentFileHandle.getFile();
-                                    await processFile(f, true);
-                                } else {
-                                    showToast('⚠️ 파일 핸들이 없습니다. 탐색기에서 파일을 클릭해 다시 여세요.');
-                                }
+                                var baseName = originalFileName || 'restored';
+                                var dotIdx = baseName.lastIndexOf('.');
+                                var newName = dotIdx > -1
+                                    ? baseName.slice(0, dotIdx) + '_복구됨' + baseName.slice(dotIdx)
+                                    : baseName + '_복구됨';
+                                if (!currentDirectoryHandle) { alert('작업 폴더가 설정되지 않았습니다. 탐색기에서 폴더를 먼저 선택해주세요.'); return; }
+                                var rootDir = currentDirectoryHandle;
+                                var newFh = await rootDir.getFileHandle(newName, { create: true });
+                                var w = await newFh.createWritable();
+                                await w.write(buf);
+                                await w.close();
+                                showToast('✅ ' + newName + ' 생성 완료. 탐색기에서 파일을 열어주세요.');
                             } catch(err) {
                                 alert('복구 실패: ' + err.message);
                             }
