@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.4.1  (2026-05-05) [최신]
+  v2.1.4.2  (2026-05-06) [최신]
+    - [추가] 파일 열 때 마지막 저장 앱(Excel/한셀) 자동 감지
+    - [추가] 한셀 파일이면 파일명 옆에 ⚠️ 경고 배지 표시
+
+  v2.1.4.1  (2026-05-05)
     - [개선] 열 필터 행 기본 숨김 → # 헤더셀 ▾ 클릭으로 토글 (상태 기억)
     - [개선] 스마트 필터 기본 숨김 → 검색바 우측 🔎 아이콘으로 토글 (상태 기억)
 
@@ -53,7 +57,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.4.1</title>
+    <title>체납대장 분석 워크스테이션 v2.1.4.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -542,7 +546,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 flex-shrink-0 z-20">
                 <div class="flex flex-col gap-1">
                     <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.1</span>
+                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.2</span>
                     </h1>
                     <div id="file-info-header" class="hidden items-center gap-2 mt-1">
                         <span class="text-xs font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded bg-slate-50">현재 파일</span>
@@ -1270,9 +1274,10 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             let fileHandlesMap = new Map(); 
             let openFiles = []; 
             let activeFileId = null;
-            let currentFileHandle = null; 
-            let currentTextFileHandle = null; 
+            let currentFileHandle = null;
+            let currentTextFileHandle = null;
             window.currentHtmlUrl = null;
+            let currentFileApp = 'unknown'; // 마지막 저장 앱: 'excel' | 'hancell' | 'unknown'
 
             let excelWorkbook = null;
             let originalFileBuffer = null;
@@ -1310,6 +1315,38 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             // 유틸리티 함수
             // ==========================================
             
+            async function detectLastApp(buffer) {
+                try {
+                    const zip = await JSZip.loadAsync(buffer);
+                    const appFile = zip.file("docProps/app.xml");
+                    if (!appFile) return 'unknown';
+                    const xml = await appFile.async("string");
+                    const m = xml.match(/<Application>([^<]+)<\/Application>/i);
+                    if (!m) return 'unknown';
+                    const app = m[1].trim();
+                    if (app.includes('한셀') || app.toLowerCase().includes('hancell') || app.includes('한컴')) return 'hancell';
+                    if (app.toLowerCase().includes('excel')) return 'excel';
+                    return 'unknown';
+                } catch(e) { return 'unknown'; }
+            }
+
+            function updateFileAppBadge(app) {
+                var old = document.getElementById('file-app-badge');
+                if (old) old.remove();
+                if (app === 'unknown') return;
+                var badge = document.createElement('span');
+                badge.id = 'file-app-badge';
+                if (app === 'hancell') {
+                    badge.style.cssText = 'font-size:10px;font-weight:800;background:#fef3c7;color:#92400e;border:1px solid #fde68a;padding:1px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap';
+                    badge.innerHTML = '⚠️ 한셀 파일 — 저장 시 일부 서식이 다를 수 있습니다';
+                } else {
+                    badge.style.cssText = 'font-size:10px;font-weight:800;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;padding:1px 7px;border-radius:4px;display:inline-flex;align-items:center;gap:3px;white-space:nowrap';
+                    badge.innerHTML = '✅ Excel 파일';
+                }
+                var header = document.getElementById('file-info-header');
+                if (header) header.appendChild(badge);
+            }
+
             async function sanitizeExcelBuffer(buffer) {
                 if (typeof JSZip === 'undefined') return buffer;
                 try {
@@ -2138,6 +2175,10 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                         if(fNameUI) fNameUI.textContent = originalFileName;
                         document.getElementById('file-info-header').classList.remove('hidden');
                         document.getElementById('file-info-header').classList.add('flex');
+                        if (f.originalFileBuffer) {
+                            currentFileApp = await detectLastApp(f.originalFileBuffer);
+                        } else { currentFileApp = 'unknown'; }
+                        updateFileAppBadge(currentFileApp);
                         await new Promise(function(r) { setTimeout(r, 100); });
                         if (f.sessionData) {
                             const sd = f.sessionData;
@@ -2632,7 +2673,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 await new Promise(function(r) { setTimeout(r, 100); });
                 try {
                     const rawBuffer = await file.arrayBuffer();
-                    originalFileBuffer = rawBuffer.slice(0); 
+                    originalFileBuffer = rawBuffer.slice(0);
+                    currentFileApp = await detectLastApp(originalFileBuffer);
                     let renderBuffer = rawBuffer.slice(0);
                     document.getElementById('loader-text').textContent = "데이터를 분석 중입니다...";
                     await new Promise(function(r) { setTimeout(r, 50); });
@@ -2788,9 +2830,10 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                         }
                     }
                     renderTabs(currentSheetNames);
+                    updateFileAppBadge(currentFileApp);
                     var _ldr=document.getElementById('loader'); if(_ldr){_ldr.style.display='none';_ldr.classList.add('hidden');}
                     document.getElementById('main-content').classList.remove('hidden');
-                    document.getElementById('main-content').classList.add('flex'); 
+                    document.getElementById('main-content').classList.add('flex');
                     if(!skipPush) {
                         const newId = 'f_' + Date.now();
                         openFiles.push({ id: newId, name: file.name, handle: currentFileHandle, isTxt: false, isModified: false, sessionData: null, originalFileBuffer: originalFileBuffer });
