@@ -5,7 +5,13 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.4.2  (2026-05-06) [최신]
+  v2.1.4.3  (2026-05-06) [최신]
+    - [수정] 열 필터 행 토글: # 셀 버튼 → 검색바 우측 줄아이콘 버튼으로 통일
+    - [수정] 사이드바 리사이저 너비 확대(4→8px) 및 핸들 라인 표시
+    - [수정] 비교 패널 divider 드래그 영역 확대
+    - [개선] 한셀 파일 sanitize 강화: mc:AlternateContent, x14/xr 계열 제거 → 서식 파싱 개선
+
+  v2.1.4.2  (2026-05-06)
     - [추가] 파일 열 때 마지막 저장 앱(Excel/한셀) 자동 감지
     - [추가] 한셀 파일이면 파일명 옆에 ⚠️ 경고 배지 표시
 
@@ -57,7 +63,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.4.2</title>
+    <title>체납대장 분석 워크스테이션 v2.1.4.3</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -452,25 +458,38 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
         /* 사이드바 리사이저 */
         #sidebar-resizer {
-            width: 4px;
+            width: 8px;
             background: transparent;
             cursor: col-resize;
             flex-shrink: 0;
-            transition: background .15s;
             z-index: 20;
             position: relative;
+            transition: background .15s;
         }
-        #sidebar-resizer:hover, #sidebar-resizer.active {
+        #sidebar-resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0; bottom: 0;
+            width: 2px;
+            transform: translateX(-50%);
+            background: #e2e8f0;
+            border-radius: 2px;
+            transition: background .15s;
+        }
+        #sidebar-resizer:hover::after, #sidebar-resizer.active::after {
             background: var(--theme-color, #3b82f6);
         }
 
         /* 비교 패널 divider */
         #cmp-panel-divider {
             cursor: col-resize;
-            padding: 0 4px;
+            padding: 0 6px;
+            transition: background .15s;
+            border-radius: 6px;
         }
         #cmp-panel-divider:hover {
-            opacity: 0.7;
+            background: rgba(99,102,241,.08);
         }
     </style>
 </head>
@@ -484,7 +503,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
     <div class="max-w-[1800px] w-full mx-auto flex gap-4 items-stretch flex-1 min-h-0 relative">
         
-        <div id="workspace-sidebar" class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-shrink-0 h-full z-10 transition-all relative overflow-hidden" style="width:256px">
+        <div id="workspace-sidebar" class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-shrink-0 h-full z-10 relative overflow-hidden" style="width:256px">
             <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col gap-2 flex-shrink-0">
                 <div class="flex justify-between items-center w-full">
                     <h2 class="text-sm font-black text-slate-800 flex items-center gap-2">📁 탐색기</h2>
@@ -546,7 +565,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 flex-shrink-0 z-20">
                 <div class="flex flex-col gap-1">
                     <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.2</span>
+                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.4.3</span>
                     </h1>
                     <div id="file-info-header" class="hidden items-center gap-2 mt-1">
                         <span class="text-xs font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded bg-slate-50">현재 파일</span>
@@ -808,6 +827,9 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                                 </div>
                                 <button id="toggle-filter-btn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg shadow-sm transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300" title="상세 필터 설정">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                </button>
+                                <button id="col-filter-row-btn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-300 p-1.5 rounded-lg shadow-sm transition-colors" title="열 필터 입력창 표시/숨기기">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"/></svg>
                                 </button>
                                 <button id="smart-filter-toggle-btn" class="bg-white border border-slate-200 hover:bg-violet-50 text-slate-300 p-1.5 rounded-lg shadow-sm transition-colors" title="스마트 필터 (열이름:조건 복합 필터)">
                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -1347,7 +1369,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 if (header) header.appendChild(badge);
             }
 
-            async function sanitizeExcelBuffer(buffer) {
+            async function sanitizeExcelBuffer(buffer, isHanCell) {
                 if (typeof JSZip === 'undefined') return buffer;
                 try {
                     const zip = await JSZip.loadAsync(buffer);
@@ -1358,12 +1380,41 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     for(let i=0; i<xmlFiles.length; i++) {
                         const n = xmlFiles[i];
                         let xmlContent = await zip.file(n).async("string");
-                        // ExcelJS는 x:sst, x:c 등 네임스페이스 접두사를 파싱 못함 → 읽기 전용으로 제거
+                        let changed = false;
+                        // x: 네임스페이스 제거 (기본)
                         if (xmlContent.includes('<x:')) {
                             xmlContent = xmlContent.replace(/<x:([a-zA-Z0-9\-]+)([^>]*?)>/g, '<$1$2>').replace(/<\/x:([a-zA-Z0-9\-]+)>/g, '</$1>');
-                            zip.file(n, xmlContent);
-                            needsRebuild = true;
+                            changed = true;
                         }
+                        // 한셀 파일: 추가 네임스페이스 제거 (ExcelJS가 파싱 못하는 접두사들)
+                        if (isHanCell) {
+                            // mc:AlternateContent 블록 제거 (한셀이 쓰는 호환성 블록)
+                            if (xmlContent.includes('<mc:AlternateContent') || xmlContent.includes('<mc:Fallback')) {
+                                xmlContent = xmlContent.replace(/<mc:AlternateContent[^>]*>[\s\S]*?<\/mc:AlternateContent>/g, '');
+                                changed = true;
+                            }
+                            // 한셀이 추가하는 확장 네임스페이스 접두사 제거
+                            var hcPrefixes = ['x14', 'x15', 'x16', 'xr', 'xr2', 'xr3', 'xm', 'x14ac'];
+                            hcPrefixes.forEach(function(pfx) {
+                                var openRe = new RegExp('<' + pfx + ':([a-zA-Z0-9\\-]+)([^>]*?)>', 'g');
+                                var closeRe = new RegExp('<\\/' + pfx + ':([a-zA-Z0-9\\-]+)>', 'g');
+                                if (xmlContent.includes('<' + pfx + ':')) {
+                                    xmlContent = xmlContent.replace(openRe, '').replace(closeRe, '');
+                                    changed = true;
+                                }
+                            });
+                            // xmlns 선언 정리 (파싱 오류 방지)
+                            if (changed) {
+                                xmlContent = xmlContent.replace(/\s+xmlns:[a-zA-Z0-9]+="[^"]*"/g, function(m) {
+                                    var pfx = m.match(/xmlns:([a-zA-Z0-9]+)/);
+                                    if (!pfx) return m;
+                                    // 표준 OOXML 네임스페이스만 유지
+                                    var keep = ['r','mc','cp','dc','dcterms','dcmitype','xsi','vt'];
+                                    return keep.indexOf(pfx[1]) !== -1 ? m : '';
+                                });
+                            }
+                        }
+                        if (changed) { zip.file(n, xmlContent); needsRebuild = true; }
                     }
                     if (needsRebuild) { return await zip.generateAsync({type: "arraybuffer"}); }
                 } catch (e) { console.warn("Sanitize failed", e); }
@@ -2676,6 +2727,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     originalFileBuffer = rawBuffer.slice(0);
                     currentFileApp = await detectLastApp(originalFileBuffer);
                     let renderBuffer = rawBuffer.slice(0);
+                    var _isHanCell = (currentFileApp === 'hancell');
                     document.getElementById('loader-text').textContent = "데이터를 분석 중입니다...";
                     await new Promise(function(r) { setTimeout(r, 50); });
                     excelWorkbook = new ExcelJS.Workbook();
@@ -2707,7 +2759,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                         openFiles.push({ id: newId, name: file.name, handle: currentFileHandle, isTxt: true, isModified: false, sessionData: null, textContent: text, originalFileBuffer: null, saveBuffer: null });
                         activeFileId = newId; renderOpenFilesTabs(); switchToOpenFile(newId); return; 
                     } else {
-                        renderBuffer = await sanitizeExcelBuffer(renderBuffer);
+                        renderBuffer = await sanitizeExcelBuffer(renderBuffer, _isHanCell);
                         saveBuffer = renderBuffer.slice(0); // 저장용 버퍼 (x: 제거됨)
                         await excelWorkbook.xlsx.load(renderBuffer);
 
@@ -2975,7 +3027,7 @@ function renderColumnVisibilityDropdown() {
                 const numTh = document.createElement('th');
                 numTh.className = "p-1 w-9 text-center sticky left-0 z-30 bg-slate-50 dark:bg-slate-800";
                 numTh.style.cssText = "min-width:36px;max-width:36px;border-right:1px solid #e2e8f0;font-size:9px;color:#94a3b8;cursor:default;";
-                numTh.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;line-height:1.2"><span>#</span><button id="col-filter-toggle-btn" title="열 필터 표시/숨기기" style="font-size:9px;color:#cbd5e1;background:none;border:none;cursor:pointer;padding:0;line-height:1;transition:color .15s" onclick="event.stopPropagation()">' + (_colFilterVisible ? '▴' : '▾') + '</button></div>';
+                numTh.textContent = '#';
                 head.appendChild(numTh);
                 filterRow.appendChild(document.createElement('th')); // 행번호 필터칸 (빈칸)
 
@@ -3089,6 +3141,8 @@ function renderColumnVisibilityDropdown() {
                 // 필터 행 가시성 적용
                 var _fRow = document.getElementById('thead-filter-row');
                 if (_fRow) _fRow.style.display = _colFilterVisible ? '' : 'none';
+                var _cfBtn = document.getElementById('col-filter-row-btn');
+                if (_cfBtn) _cfBtn.style.color = _colFilterVisible ? 'var(--theme-color)' : '';
             }
 
             // ── 메인 테이블 정렬/필터/고정 상태 ──
@@ -6778,18 +6832,21 @@ function renderColumnVisibilityDropdown() {
                 });
             }
 
-            // ── 열 필터 행 토글 (이벤트 위임: renderHeader마다 재생성되므로) ──
-            document.addEventListener('click', function(e) {
-                if (e.target && e.target.id === 'col-filter-toggle-btn') {
-                    e.stopPropagation();
-                    _colFilterVisible = !_colFilterVisible;
-                    localStorage.setItem('colFilterVisible', _colFilterVisible);
+            // ── 열 필터 행 토글 ──
+            (function() {
+                var cfBtn = document.getElementById('col-filter-row-btn');
+                function applyColFilterVisibility() {
                     var fr = document.getElementById('thead-filter-row');
                     if (fr) fr.style.display = _colFilterVisible ? '' : 'none';
-                    e.target.textContent = _colFilterVisible ? '▴' : '▾';
-                    e.target.style.color = _colFilterVisible ? 'var(--theme-color)' : '#cbd5e1';
+                    if (cfBtn) cfBtn.style.color = _colFilterVisible ? 'var(--theme-color)' : '';
                 }
-            });
+                applyColFilterVisibility();
+                if (cfBtn) cfBtn.onclick = function() {
+                    _colFilterVisible = !_colFilterVisible;
+                    localStorage.setItem('colFilterVisible', _colFilterVisible);
+                    applyColFilterVisibility();
+                };
+            })();
 
             // ── 스마트 필터 토글 ──
             (function() {
