@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.6.2  (2026-05-06) [최신]
+  v2.1.7.0  (2026-05-06) [최신]
+    - [추가] .wstation/ 통합 폴더 (config, backup, logs 하위 구성)
+    - [추가] 저장 시 변경 로그 기록 (.wstation/logs/changes_날짜.json)
+    - [추가] 설정 > 복구 탭: 백업 파일 목록·저장 이력·복구하기 버튼
+
+  v2.1.6.2  (2026-05-06)
     - [개선] 셀 진입 시(클릭·방향키) 커서 항상 텍스트 맨 끝으로 이동
 
   v2.1.6.1  (2026-05-06)
@@ -88,7 +93,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.6.2</title>
+    <title>체납대장 분석 워크스테이션 v2.1.7.0</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -623,7 +628,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.2</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.7.0</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1079,6 +1084,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     <button id="stab-save" onclick="switchSettingsTab('save')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">💾 저장</button>
                     <button id="stab-log" onclick="switchSettingsTab('log')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">🪲 디버그 로그</button>
                     <button id="stab-about" onclick="switchSettingsTab('about')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">💡 업데이트</button>
+                    <button id="stab-recovery" onclick="switchSettingsTab('recovery')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">🔄 복구</button>
                 </div>
 
                 <div class="overflow-y-auto flex-1 px-8 py-6 space-y-5">
@@ -1147,6 +1153,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.7.0</strong>: .wstation/ 통합 폴더, 변경 로그, 복구 탭 추가</p>
                                 <p><strong class="theme-text">v2.1.6.2</strong>: 셀 진입 시(클릭·방향키) 커서 항상 텍스트 맨 끝으로 이동</p>
                                 <p><strong class="theme-text">v2.1.6.1</strong>: 저장 후 Excel 복구 다이얼로그 수정 — sharedStrings count 불일치 제거</p>
                                 <p><strong class="theme-text">v2.1.6.0</strong>: 자동 백업 시스템 — backup/ 폴더에 daily/session 백업 원본 복사, 설정 on/off 토글</p>
@@ -1189,6 +1196,13 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <span class="text-[9px] font-medium text-slate-400 tracking-widest uppercase">Developer</span><br>
                             <span class="text-[10px] font-medium text-slate-400 tracking-tight">서울서부지청 김창민</span>
                         </div>
+                    </div>
+
+                    <!-- 복구 탭 -->
+                    <div id="stab-pane-recovery" class="hidden space-y-3">
+                        <div id="recovery-no-folder" class="text-xs text-slate-400 text-center py-6">폴더를 먼저 열어주세요.</div>
+                        <div id="recovery-no-file" class="hidden text-xs text-slate-400 text-center py-6">현재 열린 파일이 없거나 백업 파일이 없습니다.</div>
+                        <div id="recovery-list" class="hidden space-y-2"></div>
                     </div>
 
                 </div>
@@ -1414,12 +1428,18 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             // ════════════════════════════════════════════════════════════════
             // 백업 시스템
             // ════════════════════════════════════════════════════════════════
+            async function getWstationDir() {
+                if (!currentDirectoryHandle) return null;
+                return await currentDirectoryHandle.getDirectoryHandle('.wstation', { create: true });
+            }
+
             async function backupFile(fileName, buffer, type) {
                 // type: 'daily' | 'session'
                 if (!currentDirectoryHandle || !buffer || !fileName) return;
                 if (localStorage.getItem('backupEnabled') === 'false') return;
                 try {
-                    var backupDir = await currentDirectoryHandle.getDirectoryHandle('backup', { create: true });
+                    var wsDir = await getWstationDir();
+                    var backupDir = await wsDir.getDirectoryHandle('backup', { create: true });
                     var ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.')) : '';
                     var base = fileName.includes('.') ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
                     var backupName = base + '_' + type + ext;
@@ -1451,7 +1471,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                         smartFilterVisible: _smartFilterVisible,
                         colPresets: JSON.parse(localStorage.getItem('colPresets') || '[]')
                     };
-                    var fh = await currentDirectoryHandle.getFileHandle('.workstation_config.json', { create: true });
+                    var wsDir = await getWstationDir();
+                    var fh = await wsDir.getFileHandle('config.json', { create: true });
                     var w = await fh.createWritable();
                     await w.write(JSON.stringify(cfg, null, 2));
                     await w.close();
@@ -1461,7 +1482,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             async function loadWorkstationConfig() {
                 if (!currentDirectoryHandle) return;
                 try {
-                    var fh = await currentDirectoryHandle.getFileHandle('.workstation_config.json');
+                    var wsDir = await getWstationDir();
+                    var fh = await wsDir.getFileHandle('config.json');
                     var file = await fh.getFile();
                     var text = await file.text();
                     var cfg = JSON.parse(text);
@@ -1493,6 +1515,44 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     if (e.name !== 'NotFoundError') console.warn('config load failed', e);
                     // File doesn't exist yet — that's fine, will be created on first save
                 }
+            }
+
+            async function logSave(fileName, changes) {
+                if (!currentDirectoryHandle || !changes || !changes.length) return;
+                try {
+                    var wsDir = await getWstationDir();
+                    var logsDir = await wsDir.getDirectoryHandle('logs', { create: true });
+                    var today = new Date().toISOString().slice(0, 10);
+                    var logName = 'changes_' + today + '.json';
+                    var entries = [];
+                    try {
+                        var lfExist = await logsDir.getFileHandle(logName);
+                        var lfFile = await lfExist.getFile();
+                        entries = JSON.parse(await lfFile.text());
+                        if (!Array.isArray(entries)) entries = [];
+                    } catch(e) {}
+                    entries.push({
+                        ts: new Date().toISOString(),
+                        file: fileName,
+                        changes: changes.map(function(c) { return { sheet: c.sheetName, ref: c.ref, value: c.value }; })
+                    });
+                    var lfh = await logsDir.getFileHandle(logName, { create: true });
+                    var w = await lfh.createWritable();
+                    await w.write(JSON.stringify(entries));
+                    await w.close();
+                    // 30일 이상 된 로그 파일 삭제
+                    try {
+                        var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 30);
+                        for await (var entry of logsDir.values()) {
+                            if (entry.kind === 'file' && entry.name.startsWith('changes_')) {
+                                var datePart = entry.name.replace('changes_','').replace('.json','');
+                                if (new Date(datePart) < cutoff) {
+                                    try { await logsDir.removeEntry(entry.name); } catch(e) {}
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                } catch(e) { console.warn('logSave failed:', e); }
             }
 
             let currentSheetNames = [];
@@ -4818,6 +4878,8 @@ function renderColumnVisibilityDropdown() {
                         }
                     }
 
+                    // 변경 로그 기록
+                    logSave(originalFileName, cellChanges.slice()).catch(function(){});
                     addLog('save', { file: originalFileName, to: savedTo, changes: savedCount });
                     cellChanges = []; rowMoves = []; rowDeletes = [];
                     for(var i=0;i<openFiles.length;i++){
@@ -4985,7 +5047,7 @@ function renderColumnVisibilityDropdown() {
 
             // ── 설정 탭 전환 (전역 노출: HTML onclick에서 호출) ──
             window.switchSettingsTab = function switchSettingsTab(tab) {
-                ['general','save','log','about'].forEach(function(t) {
+                ['general','save','log','about','recovery'].forEach(function(t) {
                     var btn = document.getElementById('stab-'+t);
                     var pane = document.getElementById('stab-pane-'+t);
                     if (!btn || !pane) return;
@@ -5001,6 +5063,7 @@ function renderColumnVisibilityDropdown() {
                 });
                 if (tab === 'log') refreshDebugLogUI();
                 if (tab === 'save') refreshSaveFolderUI();
+                if (tab === 'recovery') refreshRecoveryTab();
             }
 
             // ── 디버그 로그 UI 갱신 ──
@@ -5029,6 +5092,123 @@ function renderColumnVisibilityDropdown() {
             function refreshSaveFolderUI() {
                 const el = document.getElementById('save-folder-name');
                 if (el) el.textContent = currentDirectoryHandle ? ('📁 ' + currentDirectoryHandle.name) : '지정된 폴더 없음';
+            }
+
+            async function refreshRecoveryTab() {
+                var noFolder = document.getElementById('recovery-no-folder');
+                var noFile = document.getElementById('recovery-no-file');
+                var list = document.getElementById('recovery-list');
+                if (!noFolder || !noFile || !list) return;
+
+                if (!currentDirectoryHandle) {
+                    noFolder.classList.remove('hidden');
+                    noFile.classList.add('hidden');
+                    list.classList.add('hidden');
+                    return;
+                }
+                noFolder.classList.add('hidden');
+
+                try {
+                    var wsDir = await getWstationDir();
+                    var backupDir = await wsDir.getDirectoryHandle('backup', { create: false });
+
+                    // 현재 파일명 기반으로 백업 파일 탐색
+                    var baseName = originalFileName
+                        ? (originalFileName.includes('.') ? originalFileName.slice(0, originalFileName.lastIndexOf('.')) : originalFileName)
+                        : null;
+
+                    var found = [];
+                    for await (var entry of backupDir.values()) {
+                        if (entry.kind !== 'file') continue;
+                        if (baseName && !entry.name.startsWith(baseName + '_')) continue;
+                        var file = await (await backupDir.getFileHandle(entry.name)).getFile();
+                        var label = entry.name.includes('_daily') ? '📅 데일리 백업' : '💾 세션 백업';
+                        found.push({ name: entry.name, file: file, label: label, handle: await backupDir.getFileHandle(entry.name) });
+                    }
+
+                    if (!found.length) {
+                        noFile.classList.remove('hidden');
+                        list.classList.add('hidden');
+                        return;
+                    }
+                    noFile.classList.add('hidden');
+
+                    // 로그에서 이 파일 관련 항목 수집 (최근 30일)
+                    var allLogs = [];
+                    try {
+                        var logsDir = await wsDir.getDirectoryHandle('logs', { create: false });
+                        for await (var lentry of logsDir.values()) {
+                            if (!lentry.name.startsWith('changes_')) continue;
+                            try {
+                                var lfile = await (await logsDir.getFileHandle(lentry.name)).getFile();
+                                var entries = JSON.parse(await lfile.text());
+                                if (Array.isArray(entries)) {
+                                    entries.forEach(function(e) {
+                                        if (!originalFileName || e.file === originalFileName) allLogs.push(e);
+                                    });
+                                }
+                            } catch(e) {}
+                        }
+                    } catch(e) {}
+                    allLogs.sort(function(a, b) { return b.ts.localeCompare(a.ts); });
+
+                    list.classList.remove('hidden');
+                    list.innerHTML = '';
+
+                    found.forEach(function(item) {
+                        var mtime = item.file.lastModified;
+                        var mtimeStr = mtime ? new Date(mtime).toLocaleString('ko-KR') : '알 수 없음';
+
+                        // 이 백업 시점 이전 로그 찾기 (백업 시각 기준 가장 가까운 로그)
+                        var backupTs = mtime || 0;
+                        var relatedLogs = allLogs.filter(function(l) { return new Date(l.ts).getTime() <= backupTs + 5000; }).slice(0, 3);
+
+                        var logHtml = '';
+                        if (relatedLogs.length) {
+                            logHtml = relatedLogs.map(function(l) {
+                                var t = new Date(l.ts).toLocaleString('ko-KR');
+                                var cells = l.changes.map(function(c) { return (c.sheet ? '['+c.sheet+'] ' : '') + c.ref + '→' + (c.value||''); }).join(', ');
+                                return '<p class="text-[10px] text-slate-500 mt-1"><span class="font-bold">' + t + '</span> — ' + (cells.length > 80 ? cells.slice(0,80)+'…' : cells) + '</p>';
+                            }).join('');
+                        } else {
+                            logHtml = '<p class="text-[10px] text-slate-400 mt-1">저장 이력 없음</p>';
+                        }
+
+                        var div = document.createElement('div');
+                        div.className = 'bg-slate-50 border border-slate-200 rounded-lg p-3';
+                        div.innerHTML = '<div class="flex items-center justify-between gap-2">'
+                            + '<div class="min-w-0">'
+                            + '<p class="text-xs font-bold text-slate-700">' + item.label + '</p>'
+                            + '<p class="text-[10px] text-slate-400">백업 시각: ' + mtimeStr + '</p>'
+                            + logHtml
+                            + '</div>'
+                            + '<button class="restore-btn flex-shrink-0 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg transition-colors">복구하기</button>'
+                            + '</div>';
+
+                        div.querySelector('.restore-btn').onclick = async function() {
+                            if (!confirm(item.label + ' 파일로 복구하시겠습니까?\n현재 열린 파일이 교체됩니다.')) return;
+                            try {
+                                var buf = await item.file.arrayBuffer();
+                                if (currentFileHandle) {
+                                    var w = await currentFileHandle.createWritable();
+                                    await w.write(buf);
+                                    await w.close();
+                                    showToast('✅ 복구 완료. 파일을 다시 불러옵니다.');
+                                    var f = await currentFileHandle.getFile();
+                                    await processFile(f, true);
+                                } else {
+                                    showToast('⚠️ 파일 핸들이 없습니다. 탐색기에서 파일을 클릭해 다시 여세요.');
+                                }
+                            } catch(err) {
+                                alert('복구 실패: ' + err.message);
+                            }
+                        };
+                        list.appendChild(div);
+                    });
+                } catch(e) {
+                    noFile.classList.remove('hidden');
+                    list.classList.add('hidden');
+                }
             }
 
             const setBtn = document.getElementById('settings-btn');
