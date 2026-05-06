@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.5.0  (2026-05-06) [최신]
+  v2.1.5.1  (2026-05-06) [최신]
+    - [추가] 폴더별 설정파일 (.workstation_config.json) 자동 저장/불러오기
+    - [수정] 리사이즈 버벅임 수정 (드래그 중 transition 비활성화)
+    - [수정] 탐색기 숨김 시 리사이저도 함께 숨김
+
+  v2.1.5.0  (2026-05-06)
     - [추가] HTML 앱 자체 다운로드 버튼 (헤더)
     - [추가] html-panel(웹 도구 뷰어) 드래그 리사이즈 지원
     - [수정] 열 필터 행 토글: # 셀 버튼 → 검색바 우측 줄아이콘 버튼으로 통일
@@ -65,7 +70,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.5.0</title>
+    <title>체납대장 분석 워크스테이션 v2.1.5.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -366,10 +371,11 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
         .open-file-tab.active { background-color: #e2e8f0; border-left: 3px solid var(--theme-color); }
         body.dark-mode .open-file-tab.active { background-color: #334155; }
 
-        #workspace-sidebar { transition: width 0.3s ease, margin 0.3s ease, transform 0.3s ease; }
-        #workspace-sidebar.collapsed { width: 0; overflow: hidden; margin-right: -1rem; transform: translateX(-100%); border-width: 0; }
-        
-        #html-panel { transition: width 0.3s ease, margin 0.3s ease, transform 0.3s ease; }
+        #workspace-sidebar { transition: width 0.25s ease, margin 0.25s ease; }
+        #workspace-sidebar.no-transition { transition: none !important; }
+        #workspace-sidebar.collapsed { width: 0 !important; overflow: hidden; margin-right: -1rem; border-width: 0; }
+
+        #html-panel.no-transition { transition: none !important; }
 
         /* ─── ⋯ 더보기 드롭다운 ─── */
         #more-menu-dropdown {
@@ -594,7 +600,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             <header class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4 flex-shrink-0 z-20">
                 <div class="flex flex-col gap-1">
                     <h1 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.5.0</span>
+                        <span class="theme-text">⚡</span> 체납대장 워크스테이션 <span class="ml-2 text-[10px] theme-bg px-2 py-0.5 rounded font-bold uppercase tracking-widest">V2.1.5.1</span>
                     </h1>
                     <div id="file-info-header" class="hidden items-center gap-2 mt-1">
                         <span class="text-xs font-bold text-slate-400 border border-slate-200 px-2 py-0.5 rounded bg-slate-50">현재 파일</span>
@@ -1346,6 +1352,62 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             var colWidthCache = {};
             var _colFilterVisible = (localStorage.getItem('colFilterVisible') === 'true');
             var _smartFilterVisible = (localStorage.getItem('smartFilterVisible') === 'true');
+
+            async function saveWorkstationConfig() {
+                if (!currentDirectoryHandle) return;
+                try {
+                    var cfg = {
+                        themeMode: appSettings.themeMode || 'light',
+                        sidebarWidth: localStorage.getItem('sidebarWidth') || '256px',
+                        htmlPanelWidth: localStorage.getItem('htmlPanelWidth') || '450px',
+                        colFilterVisible: _colFilterVisible,
+                        smartFilterVisible: _smartFilterVisible,
+                        colPresets: JSON.parse(localStorage.getItem('colPresets') || '[]')
+                    };
+                    var fh = await currentDirectoryHandle.getFileHandle('.workstation_config.json', { create: true });
+                    var w = await fh.createWritable();
+                    await w.write(JSON.stringify(cfg, null, 2));
+                    await w.close();
+                } catch(e) { console.warn('config save failed', e); }
+            }
+
+            async function loadWorkstationConfig() {
+                if (!currentDirectoryHandle) return;
+                try {
+                    var fh = await currentDirectoryHandle.getFileHandle('.workstation_config.json');
+                    var file = await fh.getFile();
+                    var text = await file.text();
+                    var cfg = JSON.parse(text);
+                    // apply each setting
+                    if (cfg.themeMode) { appSettings.themeMode = cfg.themeMode; applyTheme(); }
+                    if (cfg.sidebarWidth) {
+                        localStorage.setItem('sidebarWidth', cfg.sidebarWidth);
+                        var sb = document.getElementById('workspace-sidebar');
+                        if (sb && !sb.classList.contains('collapsed')) sb.style.width = cfg.sidebarWidth;
+                    }
+                    if (cfg.htmlPanelWidth) {
+                        localStorage.setItem('htmlPanelWidth', cfg.htmlPanelWidth);
+                        var hp = document.getElementById('html-panel');
+                        if (hp) hp.style.width = cfg.htmlPanelWidth;
+                    }
+                    if (typeof cfg.colFilterVisible === 'boolean') {
+                        _colFilterVisible = cfg.colFilterVisible;
+                        localStorage.setItem('colFilterVisible', _colFilterVisible);
+                    }
+                    if (typeof cfg.smartFilterVisible === 'boolean') {
+                        _smartFilterVisible = cfg.smartFilterVisible;
+                        localStorage.setItem('smartFilterVisible', _smartFilterVisible);
+                    }
+                    if (Array.isArray(cfg.colPresets)) {
+                        localStorage.setItem('colPresets', JSON.stringify(cfg.colPresets));
+                    }
+                    showToast('📂 폴더 설정을 불러왔습니다.');
+                } catch(e) {
+                    if (e.name !== 'NotFoundError') console.warn('config load failed', e);
+                    // File doesn't exist yet — that's fine, will be created on first save
+                }
+            }
+
             let currentSheetNames = [];
             let currentActiveSheetName = "";
             let parsedSheetsCache = {};
@@ -1757,10 +1819,12 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             if (closeSidebarBtn && showSidebarBtn && workspaceSidebar) {
                 closeSidebarBtn.onclick = function() {
                     workspaceSidebar.classList.add('collapsed');
+                    document.getElementById('sidebar-resizer').style.display = 'none';
                     showSidebarBtn.classList.remove('hidden');
                 };
                 showSidebarBtn.onclick = function() {
                     workspaceSidebar.classList.remove('collapsed');
+                    document.getElementById('sidebar-resizer').style.display = '';
                     showSidebarBtn.classList.add('hidden');
                 };
             }
@@ -1783,6 +1847,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     try {
                         currentDirectoryHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                         await refreshWorkspaceList();
+                        await loadWorkstationConfig();
                     } catch(e) { console.warn("Folder selection aborted."); }
                 };
                 if (openFolderBtnSm) openFolderBtnSm.onclick = handleFolderOpen;
@@ -4830,10 +4895,11 @@ function renderColumnVisibilityDropdown() {
                 document.getElementById('setting-theme').value = appSettings.themeMode || 'light';
                 setMod.classList.remove('hidden'); setTimeout(function() { setMod.classList.remove('opacity-0'); }, 10); };
             if(clSetBtn) clSetBtn.onclick = function() { setMod.classList.add('opacity-0'); setTimeout(function() { setMod.classList.add('hidden'); }, 200); };
-            if(svSetBtn) svSetBtn.onclick = function() {
+            if(svSetBtn) svSetBtn.onclick = async function() {
                 appSettings.themeMode = document.getElementById('setting-theme').value;
                 localStorage.setItem('analyzer_settings', JSON.stringify(appSettings));
                 applyTheme(); clSetBtn.click(); showToast('설정이 저장되었습니다.');
+                await saveWorkstationConfig();
             // 저장 폴더 선택 버튼
             const pickFolderBtn = document.getElementById('pick-save-folder-btn');
             if(pickFolderBtn) pickFolderBtn.onclick = async function() {
@@ -6780,6 +6846,7 @@ function renderColumnVisibilityDropdown() {
                 colPresets = colPresets.filter(function(p){ return p.name !== name; });
                 colPresets.push({ name: name, columns: cols });
                 localStorage.setItem('colPresets', JSON.stringify(colPresets));
+                saveWorkstationConfig();
                 showToast('✅ 프리셋 "' + name + '" 저장 완료');
                 renderPresetDropdown();
             }
@@ -6812,6 +6879,7 @@ function renderColumnVisibilityDropdown() {
             function deleteColPreset(name) {
                 colPresets = colPresets.filter(function(p){ return p.name !== name; });
                 localStorage.setItem('colPresets', JSON.stringify(colPresets));
+                saveWorkstationConfig();
                 renderPresetDropdown();
             }
 
@@ -6879,6 +6947,7 @@ function renderColumnVisibilityDropdown() {
                 if (cfBtn) cfBtn.onclick = function() {
                     _colFilterVisible = !_colFilterVisible;
                     localStorage.setItem('colFilterVisible', _colFilterVisible);
+                    saveWorkstationConfig();
                     applyColFilterVisibility();
                 };
             })();
@@ -6895,6 +6964,7 @@ function renderColumnVisibilityDropdown() {
                 if (sfBtn) sfBtn.onclick = function() {
                     _smartFilterVisible = !_smartFilterVisible;
                     localStorage.setItem('smartFilterVisible', _smartFilterVisible);
+                    saveWorkstationConfig();
                     applySmartFilterVisibility();
                 };
             })();
@@ -6908,8 +6978,11 @@ function renderColumnVisibilityDropdown() {
                 if (!sidebar || !resizer) return;
                 var saved = localStorage.getItem('sidebarWidth');
                 if (saved) sidebar.style.width = saved;
+                // If sidebar is collapsed on load, hide resizer
+                if (sidebar.classList.contains('collapsed')) resizer.style.display = 'none';
                 resizer.addEventListener('mousedown', function(e) {
                     e.preventDefault();
+                    sidebar.classList.add('no-transition');
                     var startX = e.clientX, startW = sidebar.offsetWidth;
                     var lastW = startW;
                     document.body.style.userSelect = 'none';
@@ -6920,7 +6993,9 @@ function renderColumnVisibilityDropdown() {
                         sidebar.style.width = lastW + 'px';
                     };
                     var onUp = function() {
+                        sidebar.classList.remove('no-transition');
                         localStorage.setItem('sidebarWidth', lastW + 'px');
+                        saveWorkstationConfig();
                         document.body.style.userSelect = '';
                         document.body.style.cursor = '';
                         resizer.classList.remove('active');
@@ -6988,6 +7063,7 @@ function renderColumnVisibilityDropdown() {
 
                 resizer.addEventListener('mousedown', function(e) {
                     e.preventDefault();
+                    panel.classList.add('no-transition');
                     var startX = e.clientX, startW = panel.offsetWidth;
                     var lastW = startW;
                     document.body.style.userSelect = 'none';
@@ -6998,7 +7074,9 @@ function renderColumnVisibilityDropdown() {
                         panel.style.width = lastW + 'px';
                     };
                     var onUp = function() {
+                        panel.classList.remove('no-transition');
                         localStorage.setItem('htmlPanelWidth', lastW + 'px');
+                        saveWorkstationConfig();
                         document.body.style.userSelect = '';
                         document.body.style.cursor = '';
                         resizer.classList.remove('active');
