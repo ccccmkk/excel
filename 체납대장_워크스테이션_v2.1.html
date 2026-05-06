@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.1.5.3  (2026-05-06) [최신]
+  v2.1.6.0  (2026-05-06) [최신]
+    - [추가] 자동 백업 시스템: 파일 열람·저장 시 backup/ 폴더에 원본 바이트 복사
+    - [추가] daily 백업(하루 첫 열람), session 백업(열람·저장마다 갱신) 구분
+    - [추가] 설정 > 일반 탭에 백업 on/off 토글 추가
+
+  v2.1.5.3  (2026-05-06)
     - [수정] 웹도구 패널 리사이즈 렉: iframe pointer-events 차단으로 해결
     - [추가] 웹도구 패널 숨기기/보이기 토글 (우측 가장자리 버튼)
 
@@ -77,7 +82,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.1.5.3</title>
+    <title>체납대장 분석 워크스테이션 v2.1.6.0</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -612,7 +617,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.5.3</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.1.6.0</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1073,12 +1078,27 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <div class="overflow-y-auto flex-1 px-8 py-6 space-y-5">
 
                     <!-- 일반 탭 -->
-                    <div id="stab-pane-general">
-                        <label class="block text-xs font-bold text-slate-500 mb-1">시스템 테마 모드</label>
-                        <select id="setting-theme" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none theme-ring bg-white">
-                            <option value="light">화이트 모드 (기본)</option>
-                            <option value="dark">다크 모드</option>
-                        </select>
+                    <div id="stab-pane-general" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-500 mb-1">시스템 테마 모드</label>
+                            <select id="setting-theme" class="w-full p-2.5 border border-slate-300 rounded-lg text-sm font-medium focus:outline-none theme-ring bg-white">
+                                <option value="light">화이트 모드 (기본)</option>
+                                <option value="dark">다크 모드</option>
+                            </select>
+                        </div>
+                        <div class="border-t border-slate-100 pt-4">
+                            <label class="block text-xs font-bold text-slate-500 mb-1">자동 백업</label>
+                            <div class="flex items-center justify-between bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-700">백업 폴더 자동 생성 <span class="text-[10px] text-slate-400 font-normal">(작업폴더/backup/)</span></p>
+                                    <p class="text-[10px] text-slate-400 mt-0.5">파일 열람·저장 시 원본을 backup 폴더에 복사 보존</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer ml-3 flex-shrink-0">
+                                    <input type="checkbox" id="setting-backup" class="sr-only peer" checked>
+                                    <div class="w-10 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5"></div>
+                                </label>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 저장 탭 -->
@@ -1121,6 +1141,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.1 — 특수기능 / 데이터 비교·입력</p>
+                                <p><strong class="theme-text">v2.1.6.0</strong>: 자동 백업 시스템 — backup/ 폴더에 daily/session 백업 원본 복사, 설정 on/off 토글</p>
                                 <p><strong class="theme-text">v2.1.5.3</strong>: 웹도구 패널 리사이즈 렉 수정(iframe pointer-events 차단), 패널 숨기기/보이기 토글 추가</p>
                                 <p><strong class="theme-text">v2.1.5.2</strong>: 헤더 컴팩트 리디자인 — 단일 얇은 바, 버튼 아이콘 전용으로 데이터 공간 확보</p>
                                 <p><strong class="theme-text">v2.1.5.1</strong>: 폴더별 설정파일(.workstation_config.json) 자동 저장/불러오기, 리사이즈 버벅임 수정(드래그 중 transition 비활성화), 탐색기 숨김 시 리사이저도 함께 숨김</p>
@@ -1381,6 +1402,35 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
             var colWidthCache = {};
             var _colFilterVisible = (localStorage.getItem('colFilterVisible') === 'true');
             var _smartFilterVisible = (localStorage.getItem('smartFilterVisible') === 'true');
+
+            // ════════════════════════════════════════════════════════════════
+            // 백업 시스템
+            // ════════════════════════════════════════════════════════════════
+            async function backupFile(fileName, buffer, type) {
+                // type: 'daily' | 'session'
+                if (!currentDirectoryHandle || !buffer || !fileName) return;
+                if (localStorage.getItem('backupEnabled') === 'false') return;
+                try {
+                    var backupDir = await currentDirectoryHandle.getDirectoryHandle('backup', { create: true });
+                    var ext = fileName.includes('.') ? fileName.slice(fileName.lastIndexOf('.')) : '';
+                    var base = fileName.includes('.') ? fileName.slice(0, fileName.lastIndexOf('.')) : fileName;
+                    var backupName = base + '_' + type + ext;
+
+                    if (type === 'daily') {
+                        var today = new Date().toISOString().slice(0, 10);
+                        var lastKey = 'lastDailyBackup_' + fileName;
+                        if (localStorage.getItem(lastKey) === today) return; // 오늘 이미 백업함
+                        localStorage.setItem(lastKey, today);
+                    }
+
+                    var fh = await backupDir.getFileHandle(backupName, { create: true });
+                    var writable = await fh.createWritable();
+                    await writable.write(buffer);
+                    await writable.close();
+                } catch(e) {
+                    console.warn('backup failed (' + type + '):', e.message);
+                }
+            }
 
             async function saveWorkstationConfig() {
                 if (!currentDirectoryHandle) return;
@@ -2877,6 +2927,11 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     const rawBuffer = await file.arrayBuffer();
                     originalFileBuffer = rawBuffer.slice(0);
                     currentFileApp = await detectLastApp(originalFileBuffer);
+                    // 백업: 비동기로 처리 (UI 블로킹 없음)
+                    (function(buf, name) {
+                        backupFile(name, buf, 'daily').catch(function(){});
+                        backupFile(name, buf, 'session').catch(function(){});
+                    })(originalFileBuffer.slice(0), file.name);
                     let renderBuffer = rawBuffer.slice(0);
                     var _isHanCell = (currentFileApp === 'hancell');
                     document.getElementById('loader-text').textContent = "데이터를 분석 중입니다...";
@@ -4152,6 +4207,11 @@ function renderColumnVisibilityDropdown() {
                     return;
                 }
 
+                // 저장 직전 session 백업 (수정 전 원본 보존)
+                if (originalFileName) {
+                    backupFile(originalFileName, originalFileBuffer.slice(0), 'session').catch(function(){});
+                }
+
                 showSaveOverlay('변경사항 ' + cellChanges.length + '개 반영 중...');
                 await new Promise(function(r){ setTimeout(r, 80); });
 
@@ -4944,10 +5004,14 @@ function renderColumnVisibilityDropdown() {
             if(setBtn) setBtn.onclick = function() {
                 switchSettingsTab('general');
                 document.getElementById('setting-theme').value = appSettings.themeMode || 'light';
+                var backupChk = document.getElementById('setting-backup');
+                if (backupChk) backupChk.checked = (localStorage.getItem('backupEnabled') !== 'false');
                 setMod.classList.remove('hidden'); setTimeout(function() { setMod.classList.remove('opacity-0'); }, 10); };
             if(clSetBtn) clSetBtn.onclick = function() { setMod.classList.add('opacity-0'); setTimeout(function() { setMod.classList.add('hidden'); }, 200); };
             if(svSetBtn) svSetBtn.onclick = async function() {
                 appSettings.themeMode = document.getElementById('setting-theme').value;
+                var backupChk = document.getElementById('setting-backup');
+                if (backupChk) localStorage.setItem('backupEnabled', backupChk.checked ? 'true' : 'false');
                 localStorage.setItem('analyzer_settings', JSON.stringify(appSettings));
                 applyTheme(); clSetBtn.click(); showToast('설정이 저장되었습니다.');
                 await saveWorkstationConfig();
