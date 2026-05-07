@@ -1304,13 +1304,13 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 </div>
 
                 <!-- 탭 -->
-                <div class="flex border-b border-slate-100 px-8 gap-0">
-                    <button id="stab-general" onclick="switchSettingsTab('general')" class="stab-btn active px-4 py-2.5 text-xs font-bold border-b-2 border-blue-500 text-blue-600 -mb-px">⚙ 일반</button>
-                    <button id="stab-save" onclick="switchSettingsTab('save')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">💾 저장</button>
-                    <button id="stab-theme" onclick="switchSettingsTab('theme')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">🎨 테마</button>
-                    <button id="stab-log" onclick="switchSettingsTab('log')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">🪲 디버그 로그</button>
-                    <button id="stab-about" onclick="switchSettingsTab('about')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">💡 업데이트</button>
-                    <button id="stab-recovery" onclick="switchSettingsTab('recovery')" class="stab-btn px-4 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px">🔄 복구</button>
+                <div class="flex border-b border-slate-100 px-4 gap-0 overflow-x-auto" style="flex-shrink:0;">
+                    <button id="stab-general" onclick="switchSettingsTab('general')" class="stab-btn active px-3 py-2.5 text-xs font-bold border-b-2 border-blue-500 text-blue-600 -mb-px whitespace-nowrap">⚙ 일반</button>
+                    <button id="stab-save" onclick="switchSettingsTab('save')" class="stab-btn px-3 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px whitespace-nowrap">💾 저장</button>
+                    <button id="stab-theme" onclick="switchSettingsTab('theme')" class="stab-btn px-3 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px whitespace-nowrap">🎨 테마</button>
+                    <button id="stab-log" onclick="switchSettingsTab('log')" class="stab-btn px-3 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px whitespace-nowrap">🪲 로그</button>
+                    <button id="stab-about" onclick="switchSettingsTab('about')" class="stab-btn px-3 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px whitespace-nowrap">💡 업데이트</button>
+                    <button id="stab-recovery" onclick="switchSettingsTab('recovery')" class="stab-btn px-3 py-2.5 text-xs font-bold border-b-2 border-transparent text-slate-400 hover:text-slate-600 -mb-px whitespace-nowrap">🔄 복구</button>
                 </div>
 
                 <div class="overflow-y-auto flex-1 px-8 py-6 space-y-5">
@@ -5355,7 +5355,7 @@ function renderColumnVisibilityDropdown() {
 
             // ── 설정 탭 전환 (전역 노출: HTML onclick에서 호출) ──
             window.switchSettingsTab = function switchSettingsTab(tab) {
-                ['general','save','log','about','recovery'].forEach(function(t) {
+                ['general','save','theme','log','about','recovery'].forEach(function(t) {
                     var btn = document.getElementById('stab-'+t);
                     var pane = document.getElementById('stab-pane-'+t);
                     if (!btn || !pane) return;
