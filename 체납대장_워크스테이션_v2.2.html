@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.1.1  (2026-05-07) [최신]
+  v2.2.1.2  (2026-05-07) [최신]
+    - [수정] 나이 구간 OOM 방지 (최대 120세 캡 + 루프 횟수 제한)
+    - [수정] 사업자번호 10자리를 주민번호로 오인식하여 결측 처리되던 버그 수정
+    - [추가] 파이 차트 집계 기준 선택 (건수 / 금액 합계)
+
+  v2.2.1.1  (2026-05-07)
     - [수정] 특수기능 드롭다운 overflow:hidden에 가려지는 버그 수정 (fixed 포지션)
 
   v2.2.1.0  (2026-05-07)
@@ -123,7 +128,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.1.1</title>
+    <title>체납대장 분석 워크스테이션 v2.2.1.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -686,7 +691,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.1</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.2</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -929,6 +934,18 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                           <option value="count">개수</option>
                         </select>
                       </div>
+                    </div>
+                  </div>
+                  <!-- 파이 집계 방식 -->
+                  <div id="viz-pie-agg-section" style="display:none;">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">파이 집계 방식</p>
+                    <div style="display:flex;gap:8px;margin-bottom:4px;">
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-pie-agg" value="count" id="viz-pie-agg-count" checked> 건수</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-pie-agg" value="sum" id="viz-pie-agg-sum"> 합계</label>
+                    </div>
+                    <div id="viz-pie-sum-col-wrap" style="display:none;">
+                      <p style="font-size:9px;color:#94a3b8;margin-bottom:2px;">합계 컬럼</p>
+                      <select id="viz-pie-sum-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;"></select>
                     </div>
                   </div>
                   <!-- 파이 구간 설정 -->
@@ -1328,6 +1345,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.1.2</strong>: 나이구간 OOM 수정, 사업자번호 결측처리, 파이 집계기준 선택</p>
                                 <p><strong class="theme-text">v2.2.1.1</strong>: 특수기능 드롭다운 가림 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.1.0</strong>: 자동구간 전략 (로그/균등/나이), 주민번호→나이 파생 컬럼</p>
                                 <p><strong class="theme-text">v2.2.0.4</strong>: 파이 슬라이스 레이블 옵션 (퍼센트/건수/합계금액)</p>
@@ -7662,11 +7680,13 @@ function renderColumnVisibilityDropdown() {
                 var aggSec = document.getElementById('viz-agg-section');
                 var binsSec = document.getElementById('viz-bins-section');
                 var yLabel = document.getElementById('viz-y-label');
-                var pieLabelSec = document.getElementById('viz-pie-label-section');
+                var pieLabelSec  = document.getElementById('viz-pie-label-section');
+                var pieAggSec    = document.getElementById('viz-pie-agg-section');
                 if (xSec) xSec.style.display = isBarLine ? '' : 'none';
                 if (aggSec) aggSec.style.display = isBarLine ? '' : 'none';
                 if (binsSec) binsSec.style.display = type === 'pie' ? '' : 'none';
                 if (pieLabelSec) pieLabelSec.style.display = type === 'pie' ? '' : 'none';
+                if (pieAggSec)   pieAggSec.style.display   = type === 'pie' ? '' : 'none';
                 if (yLabel) yLabel.textContent = type === 'pie' ? '값 컬럼' : 'Y축 컬럼';
             }
 
@@ -7773,6 +7793,25 @@ function renderColumnVisibilityDropdown() {
                         xCol.appendChild(opt);
                     });
                 }
+                // 파이 합계 컬럼 셀렉트 (숫자형만)
+                var pieSumCol = document.getElementById('viz-pie-sum-col');
+                if (pieSumCol) {
+                    pieSumCol.innerHTML = '';
+                    _vizDetectedCols.filter(function(c){ return c.type === 'numeric' && !c.derivedType; }).forEach(function(c) {
+                        var opt = document.createElement('option');
+                        opt.value = c.index;
+                        opt.textContent = c.name + (c.isMoney ? ' 💰' : '');
+                        pieSumCol.appendChild(opt);
+                    });
+                }
+                // 파이 집계 방식 라디오 이벤트
+                var pieAggRadios = document.querySelectorAll('input[name="viz-pie-agg"]');
+                pieAggRadios.forEach(function(r) {
+                    r.onchange = function() {
+                        var wrap = document.getElementById('viz-pie-sum-col-wrap');
+                        if (wrap) wrap.style.display = this.value === 'sum' ? '' : 'none';
+                    };
+                });
             }
 
             function updateVizYStats() {
@@ -7867,17 +7906,19 @@ function renderColumnVisibilityDropdown() {
                 if (strategy === 'log' || (strategy === 'auto' && colInfo.isMoney)) {
                     _vizBins = logMoneyBins(min, max, n);
                 } else if (strategy === 'age10' || (strategy === 'auto' && colInfo.derivedType === 'age')) {
-                    var ageMin = Math.floor(Math.max(0, min) / 10) * 10;
-                    var ageMax = Math.ceil(max / 10) * 10;
+                    var ageMin = Math.floor(Math.max(0, Math.min(min, 120)) / 10) * 10;
+                    var ageMax = Math.ceil(Math.min(max, 120) / 10) * 10;
+                    if (ageMax <= ageMin) ageMax = ageMin + 10;
                     _vizBins = [];
-                    for (var a = ageMin; a < ageMax; a += 10) {
+                    for (var a = ageMin; a < ageMax && _vizBins.length < 20; a += 10) {
                         _vizBins.push({ from: a, to: a + 10, label: a + '~' + (a+10) + '세' });
                     }
                 } else if (strategy === 'age5') {
-                    var ageMin5 = Math.floor(Math.max(0, min) / 5) * 5;
-                    var ageMax5 = Math.ceil(max / 5) * 5;
+                    var ageMin5 = Math.floor(Math.max(0, Math.min(min, 120)) / 5) * 5;
+                    var ageMax5 = Math.ceil(Math.min(max, 120) / 5) * 5;
+                    if (ageMax5 <= ageMin5) ageMax5 = ageMin5 + 5;
                     _vizBins = [];
-                    for (var a5 = ageMin5; a5 < ageMax5; a5 += 5) {
+                    for (var a5 = ageMin5; a5 < ageMax5 && _vizBins.length < 30; a5 += 5) {
                         _vizBins.push({ from: a5, to: a5 + 5, label: a5 + '~' + (a5+5) + '세' });
                     }
                 } else if (strategy === 'equal') {
@@ -7909,7 +7950,7 @@ function renderColumnVisibilityDropdown() {
             function ageFromJumin(val) {
                 if (val === null || val === undefined || val === '') return null;
                 var s = String(val).replace(/[^0-9]/g, '');
-                if (s.length < 7) return null;
+                if (s.length !== 13) return null; // 사업자번호(10자리) 등 제외
                 var yy = parseInt(s.slice(0, 2), 10);
                 var mm = parseInt(s.slice(2, 4), 10);
                 var dd = parseInt(s.slice(4, 6), 10);
@@ -8077,35 +8118,45 @@ function renderColumnVisibilityDropdown() {
 
                 if (_vizChartType === 'pie') {
                     readVizBins();
-                    var pieSums = []; // 합계금액 추적용
+                    var pieSums = [];
+                    // 파이 집계 방식 읽기
+                    var pieAggMode = (document.getElementById('viz-pie-agg-sum') && document.getElementById('viz-pie-agg-sum').checked) ? 'sum' : 'count';
+                    var pieSumColIdx = pieAggMode === 'sum' ? parseInt(document.getElementById('viz-pie-sum-col') && document.getElementById('viz-pie-sum-col').value) : -1;
+                    var pieSumColVals = (pieAggMode === 'sum' && !isNaN(pieSumColIdx)) ? rows.map(function(r){ var v = r[pieSumColIdx]; return typeof v === 'number' ? v : parseFloat(String(v||'').replace(/,/g,'')); }) : null;
+
                     if (yColInfo && yColInfo.type === 'string') {
-                        var catMap = {}, catSum = {};
+                        var catMap = {}, catSumMap = {};
                         var yRawForCat = getColValues(rows, yColInfo);
-                        yRawForCat.forEach(function(v) {
+                        yRawForCat.forEach(function(v, ri) {
                             if (v === null || v === undefined || v === '') v = '(없음)';
                             v = String(v);
                             catMap[v] = (catMap[v] || 0) + 1;
-                            var n = parseFloat(v.replace(/,/g,''));
-                            catSum[v] = (catSum[v] || 0) + (isNaN(n) ? 0 : n);
+                            var sv = pieSumColVals ? (isNaN(pieSumColVals[ri]) ? 0 : pieSumColVals[ri]) : 0;
+                            catSumMap[v] = (catSumMap[v] || 0) + sv;
                         });
                         labels = Object.keys(catMap);
-                        data = labels.map(function(k) { return catMap[k]; });
-                        pieSums = labels.map(function(k) { return catSum[k]; });
+                        data = pieAggMode === 'sum'
+                            ? labels.map(function(k){ return catSumMap[k] || 0; })
+                            : labels.map(function(k){ return catMap[k]; });
+                        pieSums = labels.map(function(k){ return catSumMap[k] || 0; });
                     } else {
                         if (_vizBins.length === 0) { showToast('구간을 설정해주세요. (자동구간 버튼 활용)'); return; }
                         var binStats = _vizBins.map(function() { return { count: 0, sum: 0 }; });
                         var yRawForBin = getColValues(rows, yColInfo);
-                        yRawForBin.forEach(function(rawV) {
+                        yRawForBin.forEach(function(rawV, ri) {
                             var v = (rawV === null || rawV === undefined || rawV === '') ? null
                                 : typeof rawV === 'number' ? rawV : parseFloat(String(rawV).replace(/,/g,''));
                             if (v === null || isNaN(v)) { if (prepMethod === 'zero') v = 0; else if (prepMethod === 'mean') v = yMean; else return; }
+                            var sv = pieSumColVals ? (isNaN(pieSumColVals[ri]) ? 0 : pieSumColVals[ri]) : v;
                             _vizBins.forEach(function(bin, bi) {
-                                if (v >= bin.from && v < bin.to) { binStats[bi].count++; binStats[bi].sum += v; }
+                                if (v >= bin.from && v < bin.to) { binStats[bi].count++; binStats[bi].sum += sv; }
                             });
                         });
                         labels = _vizBins.map(function(bin) { return bin.label || (bin.from.toLocaleString() + ' ~ ' + bin.to.toLocaleString()); });
-                        data = binStats.map(function(s) { return s.count; });
-                        pieSums = binStats.map(function(s) { return s.sum; });
+                        data = pieAggMode === 'sum'
+                            ? binStats.map(function(s){ return s.sum; })
+                            : binStats.map(function(s){ return s.count; });
+                        pieSums = binStats.map(function(s){ return s.sum; });
                     }
                     var palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
                     bgColors = labels.map(function(_, i) { return palette[i % palette.length]; });
