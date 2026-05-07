@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.4.1  (2026-05-07) [최신]
+  v2.2.5.0  (2026-05-07) [최신]
+    - [추가] 테마 프리셋 시스템: 이름 지정 저장/적용/삭제/공유
+    - [추가] 프리셋 .json 파일 내보내기·가져오기 (파일 1개로 공유 가능)
+
+  v2.2.4.1  (2026-05-07)
     - [수정] 테마 저장 오류: themeSave()의 스코프 버그 수정 (window 브릿지 추가)
     - [개선] 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 설정 가능)
     - [추가] 테마 탭 상단에 편집 중인 영역 선택 버튼 추가
@@ -165,7 +169,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.4.1</title>
+    <title>체납대장 분석 워크스테이션 v2.2.5.0</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -728,7 +732,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.4.1</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.0</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1387,6 +1391,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.5.0</strong>: 테마 프리셋 시스템 — 이름 지정 저장/적용/삭제, .json 파일 공유</p>
                                 <p><strong class="theme-text">v2.2.4.1</strong>: 테마 저장 오류 수정, 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 독립 설정)</p>
                                 <p><strong class="theme-text">v2.2.4.0</strong>: 커스텀 테마 완전 재설계 — 패널 직접 적용, 이미지 위치/크기/밝기, 패턴+이미지 합성, 적용 영역 선택</p>
                                 <p><strong class="theme-text">v2.2.3.0</strong>: 커스텀 테마 (배경 패턴 5종 + 이미지 업로드, 폴더 저장/이식)</p>
@@ -1554,7 +1559,25 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
   <div style="border-top:1px solid #f1f5f9;"></div>
 
-  <button onclick="themeSave()" style="width:100%;padding:9px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;">💾 테마 설정 저장</button>
+  <!-- 테마 프리셋 -->
+  <div>
+    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">테마 프리셋</div>
+    <div style="display:flex;gap:5px;margin-bottom:8px;">
+      <input id="thp-preset-name" type="text" placeholder="프리셋 이름 입력..."
+             style="flex:1;padding:5px 8px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;outline:none;color:#334155;"
+             onkeydown="if(event.key==='Enter')themeSavePreset()">
+      <button onclick="themeSavePreset()" style="padding:5px 10px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:11px;font-weight:800;cursor:pointer;">저장</button>
+      <button onclick="themeImportPreset()" title="JSON 파일에서 불러오기" style="padding:5px 9px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;font-size:12px;cursor:pointer;">📁</button>
+    </div>
+    <div id="thp-preset-list" style="display:flex;flex-direction:column;gap:4px;max-height:160px;overflow-y:auto;">
+      <p style="font-size:10px;color:#94a3b8;text-align:center;padding:8px 0;">폴더를 열면 저장된 프리셋이 표시됩니다.</p>
+    </div>
+    <p style="font-size:10px;color:#94a3b8;margin-top:5px;">프리셋 .json 파일을 공유하면 누구든지 동일한 테마를 사용할 수 있습니다.</p>
+  </div>
+
+  <div style="border-top:1px solid #f1f5f9;"></div>
+
+  <button onclick="themeSave()" style="width:100%;padding:9px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;">💾 현재 테마를 폴더에 저장 (자동로드)</button>
   <p style="font-size:10px;color:#94a3b8;text-align:center;margin-top:-6px;">폴더가 열려있어야 저장됩니다.</p>
 </div>
 
@@ -5449,6 +5472,7 @@ function renderColumnVisibilityDropdown() {
                 if (tab === 'log') refreshDebugLogUI();
                 if (tab === 'save') refreshSaveFolderUI();
                 if (tab === 'recovery') refreshRecoveryTab();
+                if (tab === 'theme') themeRefreshPresetList();
             }
 
             // ── 디버그 로그 UI 갱신 ──
@@ -8882,6 +8906,139 @@ function renderColumnVisibilityDropdown() {
             }
             _themeLoadPanelToUI(_panelThemes[_activePanel]);
             _themeRender();
+        }
+
+        // ════════════════════════════════════════════════════════════════
+        // 테마 프리셋 시스템
+        // ════════════════════════════════════════════════════════════════
+        async function _themeGetPresetsDir() {
+            var wsDir = await window._themeGetWstDir();
+            return await wsDir.getDirectoryHandle('themes', { create: true });
+        }
+
+        async function themeSavePreset() {
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) { showToast('폴더를 먼저 열어주세요.'); return; }
+            var nameEl = document.getElementById('thp-preset-name');
+            var name = nameEl ? nameEl.value.trim() : '';
+            if (!name) { showToast('프리셋 이름을 입력하세요.'); return; }
+            var safeName = name.replace(/[\\/:*?"<>|]/g, '_');
+            try {
+                var presetsDir = await _themeGetPresetsDir();
+                var preset = { name: name, version: '2.2', savedAt: new Date().toISOString(), panels: {} };
+                ['sidebar','header','table','body'].forEach(function(panel) {
+                    preset.panels[panel] = Object.assign({}, _panelThemes[panel]);
+                });
+                var fh = await presetsDir.getFileHandle(safeName + '.json', { create: true });
+                var w = await fh.createWritable();
+                await w.write(JSON.stringify(preset, null, 2));
+                await w.close();
+                if (nameEl) nameEl.value = '';
+                showToast('🎨 프리셋 "' + name + '" 저장됨');
+                themeRefreshPresetList();
+            } catch(e) { console.warn('preset save failed', e); showToast('저장 실패: ' + e.message); }
+        }
+
+        async function themeLoadPreset(fileName) {
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) return;
+            try {
+                var presetsDir = await _themeGetPresetsDir();
+                var fh = await presetsDir.getFileHandle(fileName);
+                var file = await fh.getFile();
+                var text = await file.text();
+                var preset = JSON.parse(text);
+                if (!preset.panels) { showToast('유효하지 않은 프리셋 파일입니다.'); return; }
+                ['sidebar','header','table','body'].forEach(function(panel) {
+                    if (preset.panels[panel]) Object.assign(_panelThemes[panel], preset.panels[panel]);
+                });
+                _themeLoadPanelToUI(_panelThemes[_activePanel]);
+                _themeRender();
+                showToast('🎨 "' + (preset.name || fileName) + '" 적용됨');
+            } catch(e) { console.warn('preset load failed', e); showToast('불러오기 실패: ' + e.message); }
+        }
+
+        async function themeDeletePreset(fileName, displayName) {
+            if (!confirm('"' + displayName + '" 프리셋을 삭제하시겠습니까?')) return;
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) return;
+            try {
+                var presetsDir = await _themeGetPresetsDir();
+                await presetsDir.removeEntry(fileName);
+                showToast('프리셋 삭제됨');
+                themeRefreshPresetList();
+            } catch(e) { showToast('삭제 실패: ' + e.message); }
+        }
+
+        function themeExportPreset(fileName) {
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) return;
+            _themeGetPresetsDir().then(function(presetsDir) {
+                return presetsDir.getFileHandle(fileName).then(function(fh) { return fh.getFile(); });
+            }).then(function(file) {
+                var url = URL.createObjectURL(file);
+                var a = document.createElement('a');
+                a.href = url; a.download = fileName; a.click();
+                setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+            }).catch(function(e) { showToast('내보내기 실패: ' + e.message); });
+        }
+
+        function themeImportPreset() {
+            var input = document.createElement('input');
+            input.type = 'file'; input.accept = '.json';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(ev) {
+                    try {
+                        var preset = JSON.parse(ev.target.result);
+                        if (!preset.panels) { showToast('유효하지 않은 테마 파일입니다.'); return; }
+                        ['sidebar','header','table','body'].forEach(function(panel) {
+                            if (preset.panels[panel]) Object.assign(_panelThemes[panel], preset.panels[panel]);
+                        });
+                        _themeLoadPanelToUI(_panelThemes[_activePanel]);
+                        _themeRender();
+                        showToast('🎨 테마 불러옴: ' + (preset.name || file.name));
+                    } catch(e) { showToast('파일 읽기 오류: ' + e.message); }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        async function themeRefreshPresetList() {
+            var listEl = document.getElementById('thp-preset-list');
+            if (!listEl) return;
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) {
+                listEl.innerHTML = '<p style="font-size:10px;color:#94a3b8;text-align:center;padding:8px 0;">폴더를 열면 저장된 프리셋이 표시됩니다.</p>';
+                return;
+            }
+            try {
+                var presetsDir = await _themeGetPresetsDir();
+                var items = [];
+                for await (var entry of presetsDir.values()) {
+                    if (entry.name.endsWith('.json')) items.push(entry.name);
+                }
+                items.sort();
+                if (!items.length) {
+                    listEl.innerHTML = '<p style="font-size:10px;color:#94a3b8;text-align:center;padding:8px 0;">저장된 프리셋이 없습니다.</p>';
+                    return;
+                }
+                listEl.innerHTML = items.map(function(fname) {
+                    var disp = fname.replace(/\.json$/, '');
+                    var esc = disp.replace(/'/g, "\\'");
+                    return '<div style="display:flex;align-items:center;gap:4px;padding:5px 7px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;">' +
+                        '<span style="flex:1;font-size:11px;font-weight:700;color:#334155;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">🎨 '+disp+'</span>' +
+                        '<button onclick="themeLoadPreset(\''+fname+'\')"   style="padding:3px 7px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:5px;font-size:10px;font-weight:700;color:#3b82f6;cursor:pointer;">적용</button>' +
+                        '<button onclick="themeExportPreset(\''+fname+'\')" style="padding:3px 7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;font-size:10px;font-weight:700;color:#16a34a;cursor:pointer;" title="파일로 내보내기">↓공유</button>' +
+                        '<button onclick="themeDeletePreset(\''+fname+'\',\''+esc+'\')" style="padding:3px 7px;background:#fef2f2;border:1px solid #fecaca;border-radius:5px;font-size:10px;font-weight:700;color:#dc2626;cursor:pointer;">✕</button>' +
+                        '</div>';
+                }).join('');
+            } catch(e) {
+                listEl.innerHTML = '<p style="font-size:10px;color:#ef4444;text-align:center;padding:8px 0;">목록 로드 실패</p>';
+            }
         }
 
         // ════════════════════════════════════════════════════════════════
