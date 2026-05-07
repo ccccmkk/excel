@@ -8422,6 +8422,7 @@ function renderColumnVisibilityDropdown() {
             window._tutCheckDataLoaded = function() {
                 return currentSheetNames.length > 0 && !!currentActiveSheetName;
             };
+            window._tutGetSheetCount = function() { return currentSheetNames.length; };
 
         }); // END of DOMContentLoaded
 
@@ -8583,7 +8584,7 @@ window.startTutorial = function() {
     _tutActive = true;
     _tutStep = 0;
     // 시작 시점의 시트 수 기억 (신규 로드 감지용)
-    window._tutStartSheetCount = (typeof window._tutCheckDataLoaded === 'function' && typeof currentSheetNames !== 'undefined') ? currentSheetNames.length : 0;
+    window._tutStartSheetCount = typeof window._tutGetSheetCount === 'function' ? window._tutGetSheetCount() : 0;
     document.getElementById('tut-overlay').style.display = 'block';
     _tutShowStep(0);
     // 1단계: 파일 로드 자동 감지 시작
@@ -8640,7 +8641,7 @@ function _tutWatchDataLoad() {
     var iv = setInterval(function() {
         if (!_tutActive || _tutStep !== 0) { clearInterval(iv); return; }
         try {
-            if (currentSheetNames.length > startCount) {
+            if (typeof window._tutGetSheetCount === 'function' && window._tutGetSheetCount() > startCount) {
                 clearInterval(iv);
                 _tutAdvance();
             }
