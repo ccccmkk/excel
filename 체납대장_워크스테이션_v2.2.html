@@ -8582,13 +8582,14 @@ var TUT_STEPS = [
 
 // ── 핵심 함수들 ──────────────────────────────────────────────────
 window.startTutorial = function() {
-    // 샘플 데이터 즉시 자동 로드 (파일 불필요)
-    if (typeof window._tutLoadSample === 'function') {
-        window._tutLoadSample();
-    }
+    // 샘플 데이터 즉시 자동 로드 (에러가 나도 튜토리얼은 열림)
+    try {
+        if (typeof window._tutLoadSample === 'function') window._tutLoadSample();
+    } catch(e) { console.warn('샘플 로드 실패:', e); }
     _tutActive = true;
     _tutStep = 0;
-    document.getElementById('tut-overlay').style.display = 'block';
+    var ov = document.getElementById('tut-overlay');
+    if (ov) ov.style.display = 'block';
     _tutShowStep(0);
 };
 
@@ -8632,7 +8633,7 @@ function _tutAttachAutoDetect(step, idx) {
         var el = document.getElementById('search-input');
         if (!el) return;
         var timer = null;
-        function onInput() {
+        var onInput = function() {
             if (!_tutActive || _tutStep !== idx) return;
             if (el.value.trim().length > 0) {
                 clearTimeout(timer);
@@ -8644,20 +8645,20 @@ function _tutAttachAutoDetect(step, idx) {
                     }
                 }, 1200);
             }
-        }
+        };
         el.addEventListener('input', onInput);
         _tutAutoCleanup = function() { el.removeEventListener('input', onInput); clearTimeout(timer); };
     } else if (step.autoDetect === 'filter') {
         var btn = document.getElementById('col-filter-row-btn');
         if (!btn) return;
-        function onClick() {
+        var onClick = function() {
             if (!_tutActive || _tutStep !== idx) return;
             btn.removeEventListener('click', onClick);
             _tutAutoCleanup = null;
             setTimeout(function() {
                 if (_tutActive && _tutStep === idx) _tutAdvance();
             }, 700);
-        }
+        };
         btn.addEventListener('click', onClick);
         _tutAutoCleanup = function() { btn.removeEventListener('click', onClick); };
     }
