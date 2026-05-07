@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.4.0  (2026-05-07) [최신]
+  v2.2.4.1  (2026-05-07) [최신]
+    - [수정] 테마 저장 오류: themeSave()의 스코프 버그 수정 (window 브릿지 추가)
+    - [개선] 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 설정 가능)
+    - [추가] 테마 탭 상단에 편집 중인 영역 선택 버튼 추가
+
+  v2.2.4.0  (2026-05-07)
     - [개선] 커스텀 테마 완전 재설계: body 오버레이 방식 → 패널 직접 적용 방식
     - [추가] 이미지 위치(9방향), 크기(꽉채움/맞춤/반복), 밝기 조절
     - [추가] 패턴+이미지 합성 (체크/격자/점/사선 안에 이미지 타일링)
@@ -160,7 +165,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.4.0</title>
+    <title>체납대장 분석 워크스테이션 v2.2.4.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -723,7 +728,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.4.0</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.4.1</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1382,6 +1387,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.4.1</strong>: 테마 저장 오류 수정, 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 독립 설정)</p>
                                 <p><strong class="theme-text">v2.2.4.0</strong>: 커스텀 테마 완전 재설계 — 패널 직접 적용, 이미지 위치/크기/밝기, 패턴+이미지 합성, 적용 영역 선택</p>
                                 <p><strong class="theme-text">v2.2.3.0</strong>: 커스텀 테마 (배경 패턴 5종 + 이미지 업로드, 폴더 저장/이식)</p>
                                 <p><strong class="theme-text">v2.2.2.2</strong>: 튜토리얼 전면 재설계 — 파일 불필요, 샘플 자동로드, 검색/필터 자동감지</p>
@@ -1452,6 +1458,19 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
                     <!-- 테마 탭 -->
                     <div id="stab-pane-theme" class="hidden space-y-4">
+
+  <!-- 패널 선택 -->
+  <div>
+    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">편집 중인 영역</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;">
+      <button id="thp-panel-sidebar"  onclick="themeSwitchPanel('sidebar')"  style="padding:5px 10px;border-radius:7px;font-size:11px;font-weight:800;border:2px solid #3b82f6;background:#eff6ff;color:#3b82f6;cursor:pointer;">탐색기</button>
+      <button id="thp-panel-header"   onclick="themeSwitchPanel('header')"   style="padding:5px 10px;border-radius:7px;font-size:11px;font-weight:800;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;">헤더</button>
+      <button id="thp-panel-table"    onclick="themeSwitchPanel('table')"    style="padding:5px 10px;border-radius:7px;font-size:11px;font-weight:800;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;">테이블</button>
+      <button id="thp-panel-body"     onclick="themeSwitchPanel('body')"     style="padding:5px 10px;border-radius:7px;font-size:11px;font-weight:800;border:2px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;">전체배경</button>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid #f1f5f9;"></div>
 
   <!-- 이미지 섹션 -->
   <div>
@@ -1530,24 +1549,6 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
         <input type="range" id="thp-opacity" min="5" max="90" value="40" oninput="themeApply()" style="flex:1;">
         <span id="thp-opacity-val" style="font-size:10px;color:#94a3b8;width:28px;">40%</span>
       </div>
-    </div>
-  </div>
-
-  <div style="border-top:1px solid #f1f5f9;"></div>
-
-  <!-- 적용 영역 -->
-  <div>
-    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">적용 영역</div>
-    <div style="display:flex;flex-direction:column;gap:5px;">
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;font-weight:700;color:#334155;">
-        <input type="checkbox" id="thp-target-sidebar" checked onchange="themeApply()"> 탐색기 (사이드바)
-      </label>
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;font-weight:700;color:#334155;">
-        <input type="checkbox" id="thp-target-header" checked onchange="themeApply()"> 헤더 바
-      </label>
-      <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:11px;font-weight:700;color:#334155;">
-        <input type="checkbox" id="thp-target-table" onchange="themeApply()"> 테이블 영역
-      </label>
     </div>
   </div>
 
@@ -1822,20 +1823,18 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                         colFilterVisible: _colFilterVisible,
                         smartFilterVisible: _smartFilterVisible,
                         colPresets: JSON.parse(localStorage.getItem('colPresets') || '[]'),
-                        customTheme: {
-                            pattern: _customTheme.pattern,
-                            patternColor: _customTheme.patternColor,
-                            patternSize: _customTheme.patternSize,
-                            patternOpacity: _customTheme.patternOpacity,
-                            imageUseInPattern: _customTheme.imageUseInPattern,
-                            imagePosition: _customTheme.imagePosition,
-                            imageSize: _customTheme.imageSize,
-                            imageWhiten: _customTheme.imageWhiten,
-                            targetSidebar: _customTheme.targetSidebar,
-                            targetHeader: _customTheme.targetHeader,
-                            targetTable: _customTheme.targetTable,
-                            hasImage: !!_customTheme.imageDataUrl
-                        }
+                        panelThemes: (function() {
+                            var out = {};
+                            ['sidebar','header','table','body'].forEach(function(panel) {
+                                var p = _panelThemes[panel];
+                                out[panel] = { pattern: p.pattern, patternColor: p.patternColor,
+                                    patternSize: p.patternSize, patternOpacity: p.patternOpacity,
+                                    imageUseInPattern: p.imageUseInPattern, imagePosition: p.imagePosition,
+                                    imageSize: p.imageSize, imageWhiten: p.imageWhiten,
+                                    hasImage: !!p.imageDataUrl };
+                            });
+                            return out;
+                        })()
                     };
                     var wsDir = await getWstationDir();
                     var fh = await wsDir.getFileHandle('config.json', { create: true });
@@ -1876,9 +1875,24 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     if (Array.isArray(cfg.colPresets)) {
                         localStorage.setItem('colPresets', JSON.stringify(cfg.colPresets));
                     }
-                    if (cfg.customTheme) {
-                        _themeLoadState(cfg.customTheme);
-                        if (cfg.customTheme.hasImage) await _themeLoadFromFolder(wsDir);
+                    if (cfg.panelThemes || cfg.customTheme) {
+                        _themeLoadState(cfg.panelThemes ? cfg : cfg.customTheme);
+                        var panelsWithImages = [];
+                        if (cfg.panelThemes) {
+                            ['sidebar','header','table','body'].forEach(function(p) {
+                                if (cfg.panelThemes[p] && cfg.panelThemes[p].hasImage) panelsWithImages.push(p);
+                            });
+                        } else if (cfg.customTheme && cfg.customTheme.hasImage) {
+                            // 구버전: theme_bg.dat → sidebar로 마이그레이션 시도
+                            try {
+                                var oldH = await wsDir.getFileHandle('theme_bg.dat');
+                                var oldF = await oldH.getFile();
+                                var oldDat = await new Promise(function(res) { var r = new FileReader(); r.onload = function(e){res(e.target.result);}; r.readAsDataURL(oldF); });
+                                _panelThemes.sidebar.imageDataUrl = oldDat;
+                                _panelThemes.header.imageDataUrl  = oldDat;
+                            } catch(e) {}
+                        }
+                        if (panelsWithImages.length) await _themeLoadFromFolder(wsDir, panelsWithImages);
                         else _themeRender();
                     }
                     showToast('📂 폴더 설정을 불러왔습니다.');
@@ -8568,24 +8582,29 @@ function renderColumnVisibilityDropdown() {
             };
             window._tutGetSheetCount = function() { return currentSheetNames.length; };
 
+            // 스코프 브릿지: 테마 저장/로드 함수에서 접근
+            window._themeGetDir    = function() { return currentDirectoryHandle; };
+            window._themeGetWstDir = getWstationDir;
+            window._themeSaveCfg   = saveWorkstationConfig;
+
         }); // END of DOMContentLoaded
 
         // ════════════════════════════════════════════════════════════════
-        // 커스텀 테마 시스템 v2
+        // 커스텀 테마 시스템 v3 — 패널별 독립 테마
         // ════════════════════════════════════════════════════════════════
-        var _customTheme = {
-            pattern: 'none',
-            patternColor: '#94a3b8',
-            patternSize: 24,
-            patternOpacity: 40,
-            imageUseInPattern: true,
-            imageDataUrl: null,
-            imagePosition: 'center',
-            imageSize: 'cover',
-            imageWhiten: 70,
-            targetSidebar: true,
-            targetHeader: true,
-            targetTable: false
+        var _activePanel = 'sidebar';
+
+        function _themeDefaultPanel() {
+            return { pattern: 'none', patternColor: '#94a3b8', patternSize: 24, patternOpacity: 40,
+                     imageUseInPattern: true, imageDataUrl: null, imagePosition: 'center',
+                     imageSize: 'cover', imageWhiten: 70 };
+        }
+
+        var _panelThemes = {
+            sidebar: _themeDefaultPanel(),
+            header:  _themeDefaultPanel(),
+            table:   _themeDefaultPanel(),
+            body:    _themeDefaultPanel()
         };
 
         function _themeHex2rgba(hex, alpha) {
@@ -8593,91 +8612,62 @@ function renderColumnVisibilityDropdown() {
             return 'rgba('+r+','+g+','+b+','+alpha+')';
         }
 
-        function _themeTargets() {
-            var t = {};
-            if (_customTheme.targetSidebar) t.sidebar = document.getElementById('workspace-sidebar');
-            if (_customTheme.targetHeader) {
-                var cp = document.getElementById('center-main-panel');
-                if (cp) t.header = cp.querySelector('header');
-            }
-            if (_customTheme.targetTable) t.table = document.getElementById('main-content');
-            return t;
+        function _themeElForPanel(panel) {
+            if (panel === 'sidebar') return document.getElementById('workspace-sidebar');
+            if (panel === 'header') { var cp = document.getElementById('center-main-panel'); return cp ? cp.querySelector('header') : null; }
+            if (panel === 'table') return document.getElementById('main-content');
+            if (panel === 'body') return document.body;
+            return null;
         }
 
-        function _themeBuildCSS() {
-            var pat = _customTheme.pattern;
-            var col = _customTheme.patternColor;
-            var N = _customTheme.patternSize;
-            var op = _customTheme.patternOpacity / 100;
-            var img = _customTheme.imageDataUrl;
-            var pos = _customTheme.imagePosition;
-            var sz = _customTheme.imageSize;
-            var whiten = _customTheme.imageWhiten / 100;
-            var useImgInPat = _customTheme.imageUseInPattern && !!img;
-            var c = _themeHex2rgba(col, op);
-            var N2 = N * 2;
-            var result = { backgroundImage: '', backgroundSize: '', backgroundPosition: '', backgroundRepeat: '' };
+        function _themeBuildPanelCSS(p) {
+            var pat = p.pattern, col = p.patternColor, N = p.patternSize, op = p.patternOpacity / 100;
+            var img = p.imageDataUrl, pos = p.imagePosition, sz = p.imageSize, whiten = p.imageWhiten / 100;
+            var useImgInPat = p.imageUseInPattern && !!img;
+            var c = _themeHex2rgba(col, op), N2 = N * 2;
+            var r = { backgroundImage: '', backgroundSize: '', backgroundPosition: '', backgroundRepeat: '' };
 
             if (pat === 'none') {
-                // Image only
-                if (img) {
-                    var wLayer = 'linear-gradient(rgba(255,255,255,'+whiten+'),rgba(255,255,255,'+whiten+'))';
-                    var imgSz = sz === 'repeat' ? N+'px '+N+'px' : sz;
-                    var imgRpt = sz === 'repeat' ? 'repeat' : 'no-repeat';
-                    result.backgroundImage = wLayer+',url("'+img+'")';
-                    result.backgroundSize = 'auto,'+imgSz;
-                    result.backgroundPosition = 'center,'+pos;
-                    result.backgroundRepeat = 'no-repeat,'+imgRpt;
-                }
+                if (!img) return r;
+                var wLayer = 'linear-gradient(rgba(255,255,255,'+whiten+'),rgba(255,255,255,'+whiten+'))';
+                var imgSz = sz === 'repeat' ? N+'px '+N+'px' : sz;
+                var imgRpt = sz === 'repeat' ? 'repeat' : 'no-repeat';
+                r.backgroundImage = wLayer+',url("'+img+'")';
+                r.backgroundSize = 'auto,'+imgSz;
+                r.backgroundPosition = 'center,'+pos;
+                r.backgroundRepeat = 'no-repeat,'+imgRpt;
             } else if (pat === 'checker') {
                 if (useImgInPat) {
-                    // White mask squares + image tiling underneath
-                    var M1 = 'linear-gradient(45deg,white 25%,transparent 25%,transparent 75%,white 75%)';
-                    var M2 = 'linear-gradient(45deg,white 25%,transparent 25%,transparent 75%,white 75%)';
-                    result.backgroundImage = M1+','+M2+',url("'+img+'")';
-                    result.backgroundSize = N2+'px '+N2+'px,'+N2+'px '+N2+'px,'+N+'px '+N+'px';
-                    result.backgroundPosition = '0 0,'+N+'px '+N+'px,0 0';
-                    result.backgroundRepeat = 'repeat,repeat,repeat';
+                    var M = 'linear-gradient(45deg,white 25%,transparent 25%,transparent 75%,white 75%)';
+                    r.backgroundImage = M+','+M+',url("'+img+'")';
+                    r.backgroundSize = N2+'px '+N2+'px,'+N2+'px '+N2+'px,'+N+'px '+N+'px';
+                    r.backgroundPosition = '0 0,'+N+'px '+N+'px,0 0';
+                    r.backgroundRepeat = 'repeat,repeat,repeat';
                 } else {
-                    // Solid color checker
-                    result.backgroundImage = 'linear-gradient(45deg,'+c+' 25%,transparent 25%,transparent 75%,'+c+' 75%),linear-gradient(45deg,'+c+' 25%,transparent 25%,transparent 75%,'+c+' 75%)';
-                    result.backgroundSize = N2+'px '+N2+'px,'+N2+'px '+N2+'px';
-                    result.backgroundPosition = '0 0,'+N+'px '+N+'px';
+                    r.backgroundImage = 'linear-gradient(45deg,'+c+' 25%,transparent 25%,transparent 75%,'+c+' 75%),linear-gradient(45deg,'+c+' 25%,transparent 25%,transparent 75%,'+c+' 75%)';
+                    r.backgroundSize = N2+'px '+N2+'px,'+N2+'px '+N2+'px';
+                    r.backgroundPosition = '0 0,'+N+'px '+N+'px';
                 }
             } else if (pat === 'grid') {
-                if (useImgInPat) {
-                    result.backgroundImage = 'linear-gradient('+c+' 1px,transparent 1px),linear-gradient(90deg,'+c+' 1px,transparent 1px),url("'+img+'")';
-                    result.backgroundSize = N+'px '+N+'px,'+N+'px '+N+'px,'+N+'px '+N+'px';
-                    result.backgroundPosition = '0 0,0 0,0 0';
-                } else {
-                    result.backgroundImage = 'linear-gradient('+c+' 1px,transparent 1px),linear-gradient(90deg,'+c+' 1px,transparent 1px)';
-                    result.backgroundSize = N+'px '+N+'px,'+N+'px '+N+'px';
-                    result.backgroundPosition = '0 0,0 0';
-                }
+                var gBase = 'linear-gradient('+c+' 1px,transparent 1px),linear-gradient(90deg,'+c+' 1px,transparent 1px)';
+                var gSz = N+'px '+N+'px,'+N+'px '+N+'px';
+                r.backgroundImage = useImgInPat ? gBase+',url("'+img+'")' : gBase;
+                r.backgroundSize  = useImgInPat ? gSz+','+N+'px '+N+'px' : gSz;
+                r.backgroundPosition = useImgInPat ? '0 0,0 0,0 0' : '0 0,0 0';
             } else if (pat === 'dots') {
                 var c2 = _themeHex2rgba(col, Math.min(1, op * 2));
-                if (useImgInPat) {
-                    result.backgroundImage = 'radial-gradient(circle,'+c2+' 35%,transparent 35%),url("'+img+'")';
-                    result.backgroundSize = N+'px '+N+'px,'+N+'px '+N+'px';
-                    result.backgroundPosition = '0 0,0 0';
-                } else {
-                    result.backgroundImage = 'radial-gradient(circle,'+c2+' 35%,transparent 35%)';
-                    result.backgroundSize = N+'px '+N+'px';
-                    result.backgroundPosition = '0 0';
-                }
+                var dBase = 'radial-gradient(circle,'+c2+' 35%,transparent 35%)';
+                r.backgroundImage = useImgInPat ? dBase+',url("'+img+'")' : dBase;
+                r.backgroundSize  = useImgInPat ? N+'px '+N+'px,'+N+'px '+N+'px' : N+'px '+N+'px';
+                r.backgroundPosition = useImgInPat ? '0 0,0 0' : '0 0';
             } else if (pat === 'diagonal') {
                 var hN = Math.round(N/2);
-                if (useImgInPat) {
-                    result.backgroundImage = 'repeating-linear-gradient(45deg,transparent,transparent '+hN+'px,'+c+' '+hN+'px,'+c+' '+N+'px),url("'+img+'")';
-                    result.backgroundSize = N+'px '+N+'px,'+N+'px '+N+'px';
-                    result.backgroundPosition = '0 0,0 0';
-                } else {
-                    result.backgroundImage = 'repeating-linear-gradient(45deg,transparent,transparent '+hN+'px,'+c+' '+hN+'px,'+c+' '+N+'px)';
-                    result.backgroundSize = N+'px '+N+'px';
-                    result.backgroundPosition = '0 0';
-                }
+                var diagBase = 'repeating-linear-gradient(45deg,transparent,transparent '+hN+'px,'+c+' '+hN+'px,'+c+' '+N+'px)';
+                r.backgroundImage = useImgInPat ? diagBase+',url("'+img+'")' : diagBase;
+                r.backgroundSize  = useImgInPat ? N+'px '+N+'px,'+N+'px '+N+'px' : N+'px '+N+'px';
+                r.backgroundPosition = useImgInPat ? '0 0,0 0' : '0 0';
             }
-            return result;
+            return r;
         }
 
         function _themeApplyToEl(el, css) {
@@ -8697,84 +8687,98 @@ function renderColumnVisibilityDropdown() {
         }
 
         function _themeRender() {
-            var css = _themeBuildCSS();
-            var targets = _themeTargets();
-            // Clear all first
-            var cp = document.getElementById('center-main-panel');
-            var allTargets = [
-                document.getElementById('workspace-sidebar'),
-                cp ? cp.querySelector('header') : null,
-                document.getElementById('main-content')
-            ];
-            allTargets.forEach(function(el) { if (el) _themeClearEl(el); });
-            // Apply to targets
-            var hasStyle = css.backgroundImage !== '';
-            if (hasStyle) {
-                Object.values(targets).forEach(function(el) { _themeApplyToEl(el, css); });
-            }
+            ['sidebar','header','table','body'].forEach(function(panel) {
+                var el = _themeElForPanel(panel);
+                if (!el) return;
+                var css = _themeBuildPanelCSS(_panelThemes[panel]);
+                if (css.backgroundImage) _themeApplyToEl(el, css);
+                else _themeClearEl(el);
+            });
+        }
+
+        function _themeLoadPanelToUI(p) {
+            var el = function(id) { return document.getElementById(id); };
+            if (el('thp-size'))    { el('thp-size').value = p.patternSize;   var sv = el('thp-size-val');    if(sv) sv.textContent = p.patternSize+'px'; }
+            if (el('thp-opacity')) { el('thp-opacity').value = p.patternOpacity; var ov = el('thp-opacity-val'); if(ov) ov.textContent = p.patternOpacity+'%'; }
+            if (el('thp-whiten'))  { el('thp-whiten').value = p.imageWhiten; var wv = el('thp-whiten-val');  if(wv) wv.textContent = p.imageWhiten+'%'; }
+            if (el('thp-color'))   el('thp-color').value = p.patternColor;
+            if (el('thp-img-in-pat')) el('thp-img-in-pat').checked = p.imageUseInPattern;
+            var preview = el('thp-img-preview'), ctrl = el('thp-img-controls');
+            var removeBtn = el('thp-remove-img'), imgWrap = el('thp-img-in-pat-wrap');
+            if (preview)   preview.src = p.imageDataUrl || '';
+            if (ctrl)      ctrl.style.display = p.imageDataUrl ? 'block' : 'none';
+            if (removeBtn) removeBtn.style.display = p.imageDataUrl ? '' : 'none';
+            if (imgWrap)   imgWrap.style.display = (p.pattern !== 'none' && p.imageDataUrl) ? 'flex' : 'none';
+            themeSetPattern(p.pattern);
+            themeSetPos(p.imagePosition);
+            themeSetSize(p.imageSize);
+        }
+
+        function themeSwitchPanel(panelId) {
+            _activePanel = panelId;
+            ['sidebar','header','table','body'].forEach(function(p) {
+                var btn = document.getElementById('thp-panel-'+p);
+                if (!btn) return;
+                var active = p === panelId;
+                btn.style.borderColor = active ? '#3b82f6' : '#e2e8f0';
+                btn.style.background  = active ? '#eff6ff' : '#f8fafc';
+                btn.style.color       = active ? '#3b82f6' : '#64748b';
+            });
+            _themeLoadPanelToUI(_panelThemes[_activePanel]);
         }
 
         function themeApply() {
-            // sync UI state
-            var sizeEl = document.getElementById('thp-size');
-            var opEl = document.getElementById('thp-opacity');
-            var whitenEl = document.getElementById('thp-whiten');
-            var colorEl = document.getElementById('thp-color');
+            var p = _panelThemes[_activePanel];
+            var sizeEl = document.getElementById('thp-size'), opEl = document.getElementById('thp-opacity');
+            var whitenEl = document.getElementById('thp-whiten'), colorEl = document.getElementById('thp-color');
             var imgInPatEl = document.getElementById('thp-img-in-pat');
-            var sidEl = document.getElementById('thp-target-sidebar');
-            var hdEl = document.getElementById('thp-target-header');
-            var tblEl = document.getElementById('thp-target-table');
-            if (sizeEl) { _customTheme.patternSize = parseInt(sizeEl.value); var sv = document.getElementById('thp-size-val'); if(sv) sv.textContent = sizeEl.value+'px'; }
-            if (opEl) { _customTheme.patternOpacity = parseInt(opEl.value); var ov2 = document.getElementById('thp-opacity-val'); if(ov2) ov2.textContent = opEl.value+'%'; }
-            if (whitenEl) { _customTheme.imageWhiten = parseInt(whitenEl.value); var wv = document.getElementById('thp-whiten-val'); if(wv) wv.textContent = whitenEl.value+'%'; }
-            if (colorEl) _customTheme.patternColor = colorEl.value;
-            if (imgInPatEl) _customTheme.imageUseInPattern = imgInPatEl.checked;
-            if (sidEl) _customTheme.targetSidebar = sidEl.checked;
-            if (hdEl) _customTheme.targetHeader = hdEl.checked;
-            if (tblEl) _customTheme.targetTable = tblEl.checked;
+            if (sizeEl)      { p.patternSize    = parseInt(sizeEl.value);    var sv = document.getElementById('thp-size-val');    if(sv) sv.textContent = sizeEl.value+'px'; }
+            if (opEl)        { p.patternOpacity = parseInt(opEl.value);      var ov = document.getElementById('thp-opacity-val'); if(ov) ov.textContent = opEl.value+'%'; }
+            if (whitenEl)    { p.imageWhiten    = parseInt(whitenEl.value);  var wv = document.getElementById('thp-whiten-val');  if(wv) wv.textContent = whitenEl.value+'%'; }
+            if (colorEl)     p.patternColor     = colorEl.value;
+            if (imgInPatEl)  p.imageUseInPattern = imgInPatEl.checked;
             _themeRender();
         }
 
         function themeSetPattern(pat) {
-            _customTheme.pattern = pat;
+            _panelThemes[_activePanel].pattern = pat;
             ['none','checker','grid','dots','diagonal'].forEach(function(p) {
                 var btn = document.getElementById('thp-'+p);
                 if (!btn) return;
                 var active = p === pat;
                 btn.style.borderColor = active ? '#3b82f6' : '#e2e8f0';
-                btn.style.background = active ? '#eff6ff' : '#f8fafc';
-                btn.style.color = active ? '#3b82f6' : '#64748b';
+                btn.style.background  = active ? '#eff6ff' : '#f8fafc';
+                btn.style.color       = active ? '#3b82f6' : '#64748b';
             });
             var ctrl = document.getElementById('thp-pat-controls');
             if (ctrl) ctrl.style.display = pat === 'none' ? 'none' : 'block';
             var opRow = document.getElementById('thp-opacity-row');
             if (opRow) opRow.style.display = (pat !== 'none') ? 'flex' : 'none';
-            // Show image-in-pattern option only if image loaded and pattern not none
             var imgWrap = document.getElementById('thp-img-in-pat-wrap');
-            if (imgWrap) imgWrap.style.display = (pat !== 'none' && _customTheme.imageDataUrl) ? 'flex' : 'none';
+            if (imgWrap) imgWrap.style.display = (pat !== 'none' && _panelThemes[_activePanel].imageDataUrl) ? 'flex' : 'none';
             _themeRender();
         }
 
         function themeSetPos(pos) {
-            _customTheme.imagePosition = pos;
+            _panelThemes[_activePanel].imagePosition = pos;
             document.querySelectorAll('#thp-pos-grid button').forEach(function(btn) {
                 var isActive = btn.dataset.pos === pos;
-                btn.style.background = isActive ? '#3b82f6' : '#f8fafc';
-                btn.style.color = isActive ? '#fff' : '#334155';
+                btn.style.background  = isActive ? '#3b82f6' : '#f8fafc';
+                btn.style.color       = isActive ? '#fff'    : '#334155';
                 btn.style.borderColor = isActive ? '#3b82f6' : '#e2e8f0';
             });
             _themeRender();
         }
 
         function themeSetSize(sz) {
-            _customTheme.imageSize = sz;
+            _panelThemes[_activePanel].imageSize = sz;
             ['cover','contain','repeat'].forEach(function(s) {
                 var btn = document.getElementById('thsz-'+s);
                 if (!btn) return;
                 var active = s === sz;
                 btn.style.borderColor = active ? '#3b82f6' : '#e2e8f0';
-                btn.style.background = active ? '#eff6ff' : '#f8fafc';
-                btn.style.color = active ? '#3b82f6' : '#64748b';
+                btn.style.background  = active ? '#eff6ff' : '#f8fafc';
+                btn.style.color       = active ? '#3b82f6' : '#64748b';
             });
             _themeRender();
         }
@@ -8784,101 +8788,98 @@ function renderColumnVisibilityDropdown() {
             if (!file) return;
             var reader = new FileReader();
             reader.onload = function(e) {
-                _customTheme.imageDataUrl = e.target.result;
+                var p = _panelThemes[_activePanel];
+                p.imageDataUrl = e.target.result;
                 var preview = document.getElementById('thp-img-preview');
                 var ctrl = document.getElementById('thp-img-controls');
                 var removeBtn = document.getElementById('thp-remove-img');
                 var imgWrap = document.getElementById('thp-img-in-pat-wrap');
-                if (preview) preview.src = e.target.result;
-                if (ctrl) ctrl.style.display = 'block';
+                if (preview)   preview.src = e.target.result;
+                if (ctrl)      ctrl.style.display = 'block';
                 if (removeBtn) removeBtn.style.display = '';
-                if (imgWrap && _customTheme.pattern !== 'none') imgWrap.style.display = 'flex';
+                if (imgWrap && p.pattern !== 'none') imgWrap.style.display = 'flex';
                 _themeRender();
             };
             reader.readAsDataURL(file);
         }
 
         function themeRemoveImage() {
-            _customTheme.imageDataUrl = null;
+            var p = _panelThemes[_activePanel];
+            p.imageDataUrl = null;
             var preview = document.getElementById('thp-img-preview');
             var ctrl = document.getElementById('thp-img-controls');
             var removeBtn = document.getElementById('thp-remove-img');
             var input = document.getElementById('thp-img-input');
             var imgWrap = document.getElementById('thp-img-in-pat-wrap');
-            if (preview) preview.src = '';
-            if (ctrl) ctrl.style.display = 'none';
+            if (preview)   preview.src = '';
+            if (ctrl)      ctrl.style.display = 'none';
             if (removeBtn) removeBtn.style.display = 'none';
-            if (input) input.value = '';
-            if (imgWrap) imgWrap.style.display = 'none';
+            if (input)     input.value = '';
+            if (imgWrap)   imgWrap.style.display = 'none';
             _themeRender();
         }
 
         function _themeLoadState(cfg) {
             if (!cfg) return;
-            if (cfg.pattern) _customTheme.pattern = cfg.pattern;
-            if (cfg.patternColor) _customTheme.patternColor = cfg.patternColor;
-            if (cfg.patternSize) _customTheme.patternSize = cfg.patternSize;
-            if (typeof cfg.patternOpacity === 'number') _customTheme.patternOpacity = cfg.patternOpacity;
-            if (typeof cfg.imageUseInPattern === 'boolean') _customTheme.imageUseInPattern = cfg.imageUseInPattern;
-            if (cfg.imagePosition) _customTheme.imagePosition = cfg.imagePosition;
-            if (cfg.imageSize) _customTheme.imageSize = cfg.imageSize;
-            if (typeof cfg.imageWhiten === 'number') _customTheme.imageWhiten = cfg.imageWhiten;
-            if (typeof cfg.targetSidebar === 'boolean') _customTheme.targetSidebar = cfg.targetSidebar;
-            if (typeof cfg.targetHeader === 'boolean') _customTheme.targetHeader = cfg.targetHeader;
-            if (typeof cfg.targetTable === 'boolean') _customTheme.targetTable = cfg.targetTable;
-            // sync UI
-            var el = function(id) { return document.getElementById(id); };
-            if (el('thp-size')) { el('thp-size').value = _customTheme.patternSize; el('thp-size-val').textContent = _customTheme.patternSize+'px'; }
-            if (el('thp-opacity')) { el('thp-opacity').value = _customTheme.patternOpacity; el('thp-opacity-val').textContent = _customTheme.patternOpacity+'%'; }
-            if (el('thp-whiten')) { el('thp-whiten').value = _customTheme.imageWhiten; el('thp-whiten-val').textContent = _customTheme.imageWhiten+'%'; }
-            if (el('thp-color')) el('thp-color').value = _customTheme.patternColor;
-            if (el('thp-img-in-pat')) el('thp-img-in-pat').checked = _customTheme.imageUseInPattern;
-            if (el('thp-target-sidebar')) el('thp-target-sidebar').checked = _customTheme.targetSidebar;
-            if (el('thp-target-header')) el('thp-target-header').checked = _customTheme.targetHeader;
-            if (el('thp-target-table')) el('thp-target-table').checked = _customTheme.targetTable;
-            themeSetPattern(_customTheme.pattern);
-            themeSetPos(_customTheme.imagePosition);
-            themeSetSize(_customTheme.imageSize);
+            if (cfg.panelThemes) {
+                ['sidebar','header','table','body'].forEach(function(panel) {
+                    if (cfg.panelThemes[panel]) Object.assign(_panelThemes[panel], cfg.panelThemes[panel]);
+                });
+            } else {
+                // 구 버전(customTheme) 마이그레이션
+                var old = cfg;
+                var base = { pattern: old.pattern||'none', patternColor: old.patternColor||'#94a3b8',
+                    patternSize: old.patternSize||24, patternOpacity: typeof old.patternOpacity==='number' ? old.patternOpacity : 40,
+                    imageUseInPattern: typeof old.imageUseInPattern==='boolean' ? old.imageUseInPattern : true,
+                    imagePosition: old.imagePosition||'center', imageSize: old.imageSize||'cover',
+                    imageWhiten: typeof old.imageWhiten==='number' ? old.imageWhiten : 70 };
+                if (old.targetSidebar !== false) Object.assign(_panelThemes.sidebar, base);
+                if (old.targetHeader  !== false) Object.assign(_panelThemes.header,  base);
+                if (old.targetTable)             Object.assign(_panelThemes.table,   base);
+            }
+            _themeLoadPanelToUI(_panelThemes[_activePanel]);
         }
 
         async function themeSave() {
-            if (!currentDirectoryHandle) { showToast('폴더를 먼저 열어주세요.'); return; }
+            var dirHandle = window._themeGetDir ? window._themeGetDir() : null;
+            if (!dirHandle) { showToast('폴더를 먼저 열어주세요.'); return; }
             try {
-                var wsDir = await getWstationDir();
-                if (_customTheme.imageDataUrl) {
-                    var imgHandle = await wsDir.getFileHandle('theme_bg.dat', { create: true });
-                    var imgWriter = await imgHandle.createWritable();
-                    var resp = await fetch(_customTheme.imageDataUrl);
-                    var blob = await resp.blob();
-                    await imgWriter.write(blob);
-                    await imgWriter.close();
-                } else {
-                    try { await wsDir.removeEntry('theme_bg.dat'); } catch(e) {}
+                var wsDir = await window._themeGetWstDir();
+                var panels = ['sidebar','header','table','body'];
+                for (var i = 0; i < panels.length; i++) {
+                    var panel = panels[i], p = _panelThemes[panel], fname = 'theme_'+panel+'.dat';
+                    if (p.imageDataUrl) {
+                        var imgHandle = await wsDir.getFileHandle(fname, { create: true });
+                        var imgWriter = await imgHandle.createWritable();
+                        var resp = await fetch(p.imageDataUrl);
+                        var blob = await resp.blob();
+                        await imgWriter.write(blob);
+                        await imgWriter.close();
+                    } else {
+                        try { await wsDir.removeEntry(fname); } catch(e) {}
+                    }
                 }
-                await saveWorkstationConfig();
+                await window._themeSaveCfg();
                 showToast('🎨 테마 설정이 저장되었습니다.');
             } catch(e) { console.warn('theme save failed', e); showToast('저장 실패: ' + e.message); }
         }
 
-        async function _themeLoadFromFolder(wsDir) {
-            try {
-                var imgHandle = await wsDir.getFileHandle('theme_bg.dat');
-                var file = await imgHandle.getFile();
-                var dataUrl = await new Promise(function(resolve) {
-                    var reader = new FileReader();
-                    reader.onload = function(e) { resolve(e.target.result); };
-                    reader.readAsDataURL(file);
-                });
-                _customTheme.imageDataUrl = dataUrl;
-                var preview = document.getElementById('thp-img-preview');
-                var ctrl = document.getElementById('thp-img-controls');
-                var removeBtn = document.getElementById('thp-remove-img');
-                var imgWrap = document.getElementById('thp-img-in-pat-wrap');
-                if (preview) preview.src = dataUrl;
-                if (ctrl) ctrl.style.display = 'block';
-                if (removeBtn) removeBtn.style.display = '';
-                if (imgWrap && _customTheme.pattern !== 'none') imgWrap.style.display = 'flex';
-            } catch(e) { /* no image */ }
+        async function _themeLoadFromFolder(wsDir, panelsWithImages) {
+            var panels = panelsWithImages || [];
+            for (var i = 0; i < panels.length; i++) {
+                var panel = panels[i];
+                try {
+                    var imgHandle = await wsDir.getFileHandle('theme_'+panel+'.dat');
+                    var file = await imgHandle.getFile();
+                    var dataUrl = await new Promise(function(resolve) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) { resolve(e.target.result); };
+                        reader.readAsDataURL(file);
+                    });
+                    _panelThemes[panel].imageDataUrl = dataUrl;
+                } catch(e) { /* 해당 패널 이미지 없음 */ }
+            }
+            _themeLoadPanelToUI(_panelThemes[_activePanel]);
             _themeRender();
         }
 
