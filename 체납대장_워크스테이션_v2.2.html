@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.0.1  (2026-05-07) [최신]
+  v2.2.0.2  (2026-05-07) [최신]
+    - [수정] 시각화 패널: 우측 드로어로 변경 (표와 동시에 표시)
+    - [수정] 파이 구간 UI 레이아웃 (입력칸 잘림 해결)
+    - [수정] 차트 캔버스 높이 0 버그 (그래프 미표시 해결)
+
+  v2.2.0.1  (2026-05-07)
     - [수정] 시각화 함수 전역 노출 (onclick 핸들러 접근 불가 버그 수정)
 
   v2.2.0.0  (2026-05-07)
@@ -102,7 +107,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.0.1</title>
+    <title>체납대장 분석 워크스테이션 v2.2.0.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -665,7 +670,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.1</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.2</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -841,102 +846,94 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 </div>
             </div>
 
-            <!-- ═══════════════ 시각화 패널 ═══════════════ -->
-            <div id="panel-viz" class="hidden flex-col" style="position:absolute; inset:0; z-index:100; overflow:hidden; background:#f1f5f9;">
-              <!-- 상단 헤더 -->
-              <div class="bg-white border-b border-slate-200 shadow-sm px-3 py-2 flex-shrink-0 flex items-center gap-2">
-                <button onclick="switchMainTab(null)" title="시각화 닫기" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s" onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'" onmouseout="this.style.background='#f1f5f9';this.style.color='#64748b'">
-                  <svg width="11" height="11" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg> 닫기
-                </button>
-                <div style="width:1px;height:18px;background:#e2e8f0"></div>
-                <span class="text-xs font-bold text-slate-700">📊 데이터 시각화</span>
-                <button id="tab-viz" onclick="switchMainTab('viz')" class="main-tab-btn px-3 py-1.5 text-xs font-medium rounded-lg transition-colors bg-blue-600 text-white">📊 시각화</button>
+            <!-- ═══════════════ 시각화 패널 (우측 드로어) ═══════════════ -->
+            <div id="panel-viz" style="display:none;position:absolute;top:0;right:0;bottom:0;width:480px;z-index:50;flex-direction:column;background:#fff;border-left:1px solid #e2e8f0;box-shadow:-4px 0 16px rgba(0,0,0,.08);">
+              <!-- 헤더 -->
+              <div style="padding:8px 10px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#f8fafc;">
+                <button onclick="switchMainTab(null)" style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:800;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'" onmouseout="this.style.background='#fff';this.style.color='#64748b'">✕ 닫기</button>
+                <span style="font-size:12px;font-weight:800;color:#334155;">📊 데이터 시각화</span>
               </div>
-              <!-- 본문 -->
-              <div class="flex flex-1 overflow-hidden">
-                <!-- 왼쪽 설정 패널 -->
-                <div class="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 overflow-y-auto p-3 flex flex-col gap-3 bg-white">
-                  <!-- ① 데이터 범위 -->
-                  <div>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">데이터 범위</p>
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                      <input type="radio" name="viz-range" value="filtered" id="viz-range-filtered" checked> 필터된 행
-                    </label>
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer mt-1">
-                      <input type="radio" name="viz-range" value="all" id="viz-range-all"> 전체
-                    </label>
-                  </div>
-                  <!-- ② 차트 종류 -->
-                  <div>
-                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">차트 종류</p>
-                    <div class="flex gap-1">
-                      <button onclick="setVizChartType('bar')" id="viz-type-bar" class="viz-type-btn flex-1 py-1 text-[10px] font-bold rounded border transition-colors">막대</button>
-                      <button onclick="setVizChartType('line')" id="viz-type-line" class="viz-type-btn flex-1 py-1 text-[10px] font-bold rounded border transition-colors">선</button>
-                      <button onclick="setVizChartType('pie')" id="viz-type-pie" class="viz-type-btn flex-1 py-1 text-[10px] font-bold rounded border transition-colors">파이</button>
+              <!-- 설정 + 차트 세로 분할 -->
+              <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+                <!-- 설정 영역 (스크롤) -->
+                <div style="overflow-y:auto;flex-shrink:0;max-height:55%;padding:10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #e2e8f0;">
+                  <!-- 데이터범위 + 차트종류 가로 배치 -->
+                  <div style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">데이터 범위</p>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-range" value="filtered" id="viz-range-filtered" checked> 필터된 행</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-top:3px;"><input type="radio" name="viz-range" value="all" id="viz-range-all"> 전체</label>
+                    </div>
+                    <div style="flex:1;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">차트 종류</p>
+                      <div style="display:flex;gap:4px;">
+                        <button onclick="setVizChartType('bar')" id="viz-type-bar" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">막대</button>
+                        <button onclick="setVizChartType('line')" id="viz-type-line" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">선</button>
+                        <button onclick="setVizChartType('pie')" id="viz-type-pie" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">파이</button>
+                      </div>
                     </div>
                   </div>
-                  <!-- ③ 컬럼 분석 결과 (자동 감지) -->
+                  <!-- 컬럼 분석 -->
                   <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <p class="text-[10px] font-bold text-slate-500 uppercase">컬럼 분석</p>
-                      <button onclick="runVizColumnDetect()" class="text-[9px] px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded">재감지</button>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;">컬럼 분석</p>
+                      <button onclick="runVizColumnDetect()" style="font-size:9px;padding:2px 7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;">재감지</button>
                     </div>
-                    <div id="viz-col-detect-info" class="text-[10px] text-slate-400">시트를 열면 자동 감지됩니다.</div>
+                    <div id="viz-col-detect-info" style="font-size:10px;color:#94a3b8;">파일을 열면 자동 감지됩니다.</div>
                   </div>
-                  <!-- ④ Y축 컬럼 선택 -->
-                  <div id="viz-y-section">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1" id="viz-y-label">Y축 컬럼</p>
-                    <select id="viz-y-col" class="w-full text-xs border rounded px-1.5 py-1 bg-white dark:bg-slate-800"></select>
-                    <div id="viz-y-stats" class="text-[10px] text-slate-400 mt-0.5"></div>
-                    <select id="viz-y-preprocess" class="w-full text-[10px] border rounded px-1.5 py-0.5 mt-1 bg-white dark:bg-slate-800">
-                      <option value="skip">결측/문자 제외</option>
-                      <option value="zero">0으로 치환</option>
-                      <option value="mean">평균으로 치환</option>
-                    </select>
-                  </div>
-                  <!-- ⑤ X축 컬럼 선택 -->
-                  <div id="viz-x-section">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">X축 컬럼</p>
-                    <select id="viz-x-col" class="w-full text-xs border rounded px-1.5 py-1 bg-white dark:bg-slate-800">
-                      <option value="__rowindex__">행 번호</option>
-                    </select>
-                  </div>
-                  <!-- ⑥ 집계 방식 -->
-                  <div id="viz-agg-section">
-                    <p class="text-[10px] font-bold text-slate-500 uppercase mb-1">집계 방식</p>
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer">
-                      <input type="radio" name="viz-agg" value="raw" id="viz-agg-raw" checked> Raw (행 그대로)
-                    </label>
-                    <label class="flex items-center gap-1.5 text-xs cursor-pointer mt-1">
-                      <input type="radio" name="viz-agg" value="group" id="viz-agg-group"> X축으로 그룹핑
-                    </label>
-                    <div id="viz-agg-method-wrap" class="hidden mt-1">
-                      <select id="viz-agg-method" class="w-full text-[10px] border rounded px-1.5 py-0.5 bg-white dark:bg-slate-800">
-                        <option value="sum">합계</option>
-                        <option value="avg">평균</option>
-                        <option value="count">개수</option>
+                  <!-- Y축 + X축 가로 배치 -->
+                  <div style="display:flex;gap:8px;">
+                    <div id="viz-y-section" style="flex:1;min-width:0;">
+                      <p id="viz-y-label" style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Y축 컬럼</p>
+                      <select id="viz-y-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;"></select>
+                      <div id="viz-y-stats" style="font-size:9px;color:#94a3b8;margin-top:2px;"></div>
+                      <select id="viz-y-preprocess" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:6px;padding:2px 4px;margin-top:3px;">
+                        <option value="skip">결측/문자 제외</option>
+                        <option value="zero">0으로 치환</option>
+                        <option value="mean">평균으로 치환</option>
+                      </select>
+                    </div>
+                    <div id="viz-x-section" style="flex:1;min-width:0;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">X축 컬럼</p>
+                      <select id="viz-x-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;">
+                        <option value="__rowindex__">행 번호</option>
                       </select>
                     </div>
                   </div>
-                  <!-- ⑦ 파이 구간 설정 -->
-                  <div id="viz-bins-section" class="hidden">
-                    <div class="flex items-center justify-between mb-1">
-                      <p class="text-[10px] font-bold text-slate-500 uppercase">구간 설정</p>
-                      <button onclick="vizAutoSuggestBins()" class="text-[9px] px-1.5 py-0.5 bg-slate-100 hover:bg-slate-200 rounded">자동구간</button>
+                  <!-- 집계방식 -->
+                  <div id="viz-agg-section">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">집계 방식</p>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-agg" value="raw" id="viz-agg-raw" checked> Raw</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-agg" value="group" id="viz-agg-group"> 그룹핑</label>
+                      <div id="viz-agg-method-wrap" style="display:none;">
+                        <select id="viz-agg-method" style="font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;">
+                          <option value="sum">합계</option>
+                          <option value="avg">평균</option>
+                          <option value="count">개수</option>
+                        </select>
+                      </div>
                     </div>
-                    <div id="viz-bins-list" class="flex flex-col gap-1"></div>
-                    <button onclick="vizAddBin()" class="mt-1 w-full text-[10px] py-0.5 border border-dashed rounded text-slate-400 hover:text-slate-600">+ 구간 추가</button>
+                  </div>
+                  <!-- 파이 구간 설정 -->
+                  <div id="viz-bins-section" style="display:none;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;">구간 설정</p>
+                      <button onclick="vizAutoSuggestBins()" style="font-size:9px;padding:2px 7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;">자동구간</button>
+                    </div>
+                    <div id="viz-bins-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+                    <button onclick="vizAddBin()" style="margin-top:4px;width:100%;font-size:10px;padding:3px;border:1px dashed #cbd5e1;border-radius:6px;color:#94a3b8;background:transparent;cursor:pointer;">+ 구간 추가</button>
                   </div>
                   <!-- 생성 버튼 -->
-                  <button onclick="generateVizChart()" class="mt-auto py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg transition-colors">📊 그래프 생성</button>
+                  <button onclick="generateVizChart()" style="padding:7px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;border-radius:8px;border:none;cursor:pointer;width:100%;">📊 그래프 생성</button>
                 </div>
-                <!-- 오른쪽 차트 영역 -->
-                <div class="flex-1 flex flex-col overflow-hidden p-3 bg-white">
-                  <div id="viz-empty-msg" class="flex-1 flex items-center justify-center text-slate-300 text-sm">그래프 생성 버튼을 눌러주세요</div>
-                  <div id="viz-chart-wrap" class="hidden flex-1 flex flex-col">
-                    <div id="viz-chart-title" class="text-xs font-bold text-slate-600 mb-2"></div>
-                    <div class="flex-1 relative">
-                      <canvas id="viz-chart-canvas"></canvas>
+                <!-- 차트 영역 -->
+                <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;">
+                  <div id="viz-empty-msg" style="flex:1;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:13px;">그래프 생성 버튼을 눌러주세요</div>
+                  <div id="viz-chart-wrap" style="display:none;flex:1;flex-direction:column;">
+                    <div id="viz-chart-title" style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;"></div>
+                    <div style="flex:1;position:relative;min-height:200px;">
+                      <canvas id="viz-chart-canvas" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
                     </div>
                   </div>
                 </div>
@@ -1297,6 +1294,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.0.2</strong>: 시각화 패널 우측 드로어 전환, 구간 UI 수정, 차트 높이 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.1</strong>: 시각화 버튼 클릭 불가 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.0</strong>: 데이터 시각화 기능 추가 (막대/선/파이 차트, 전처리, 집계)</p>
                                 <p><strong class="theme-text">v2.1.7.1</strong>: 복구 시 "_복구됨" 파일 새로 생성 (덮어쓰기 방지)</p>
@@ -7577,21 +7575,22 @@ function renderColumnVisibilityDropdown() {
             // switchMainTab: 시각화 / 비교 패널 전환
             // ──────────────────────────────────────────────────────────
             window.switchMainTab = function switchMainTab(tab) {
-                // 드롭다운 닫기
                 var dd = document.getElementById('special-func-dropdown');
                 if (dd) dd.style.display = 'none';
 
                 var vizPanel = document.getElementById('panel-viz');
                 var cmpPanel = document.getElementById('compare-mode-panel');
+                var centerPanel = document.getElementById('center-main-panel');
 
                 if (tab === 'viz') {
-                    if (vizPanel) vizPanel.style.display = 'flex';
+                    if (vizPanel) { vizPanel.style.display = 'flex'; }
                     if (cmpPanel) cmpPanel.style.display = 'none';
+                    if (centerPanel) centerPanel.style.paddingRight = '480px';
                     runVizColumnDetect();
                 } else {
-                    // null or other → close all overlays
                     if (vizPanel) vizPanel.style.display = 'none';
                     if (cmpPanel) cmpPanel.style.display = 'none';
+                    if (centerPanel) centerPanel.style.paddingRight = '';
                 }
             }
 
@@ -7606,22 +7605,24 @@ function renderColumnVisibilityDropdown() {
             window.setVizChartType = function setVizChartType(type) {
                 _vizChartType = type;
                 document.querySelectorAll('.viz-type-btn').forEach(function(b) {
-                    b.classList.remove('bg-blue-600','text-white','border-blue-600');
-                    b.classList.add('border-slate-300','text-slate-600');
+                    b.style.background = '#fff';
+                    b.style.color = '#475569';
+                    b.style.borderColor = '#cbd5e1';
                 });
                 var active = document.getElementById('viz-type-' + type);
                 if (active) {
-                    active.classList.add('bg-blue-600','text-white','border-blue-600');
-                    active.classList.remove('border-slate-300','text-slate-600');
+                    active.style.background = '#2563eb';
+                    active.style.color = '#fff';
+                    active.style.borderColor = '#2563eb';
                 }
                 var isBarLine = type === 'bar' || type === 'line';
                 var xSec = document.getElementById('viz-x-section');
                 var aggSec = document.getElementById('viz-agg-section');
                 var binsSec = document.getElementById('viz-bins-section');
                 var yLabel = document.getElementById('viz-y-label');
-                if (xSec) xSec.classList.toggle('hidden', !isBarLine);
-                if (aggSec) aggSec.classList.toggle('hidden', !isBarLine);
-                if (binsSec) binsSec.classList.toggle('hidden', type !== 'pie');
+                if (xSec) xSec.style.display = isBarLine ? '' : 'none';
+                if (aggSec) aggSec.style.display = isBarLine ? '' : 'none';
+                if (binsSec) binsSec.style.display = type === 'pie' ? '' : 'none';
                 if (yLabel) yLabel.textContent = type === 'pie' ? '값 컬럼' : 'Y축 컬럼';
             }
 
@@ -7773,12 +7774,14 @@ function renderColumnVisibilityDropdown() {
                 list.innerHTML = '';
                 _vizBins.forEach(function(bin, idx) {
                     var row = document.createElement('div');
-                    row.className = 'flex items-center gap-1 text-[10px]';
-                    row.innerHTML = '<input type="number" value="' + bin.from + '" class="viz-bin-from w-16 border rounded px-1 py-0.5 text-[10px]" data-idx="' + idx + '">'
-                        + '<span>~</span>'
-                        + '<input type="number" value="' + bin.to + '" class="viz-bin-to w-16 border rounded px-1 py-0.5 text-[10px]" data-idx="' + idx + '">'
-                        + '<input type="text" placeholder="레이블" value="' + (bin.label || '') + '" class="viz-bin-label flex-1 border rounded px-1 py-0.5 text-[10px]" data-idx="' + idx + '">'
-                        + '<button onclick="vizRemoveBin(' + idx + ')" class="text-red-400 hover:text-red-600 font-bold">✕</button>';
+                    row.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px;display:flex;flex-direction:column;gap:3px;';
+                    row.innerHTML = '<div style="display:flex;align-items:center;gap:4px;">'
+                        + '<input type="number" value="' + bin.from + '" class="viz-bin-from" style="flex:1;min-width:0;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
+                        + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0;">~</span>'
+                        + '<input type="number" value="' + bin.to + '" class="viz-bin-to" style="flex:1;min-width:0;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
+                        + '<button onclick="vizRemoveBin(' + idx + ')" style="flex-shrink:0;color:#f87171;font-weight:900;background:none;border:none;cursor:pointer;font-size:12px;line-height:1;">✕</button>'
+                        + '</div>'
+                        + '<input type="text" placeholder="레이블(비워두면 자동)" value="' + (bin.label || '') + '" class="viz-bin-label" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">';
                     list.appendChild(row);
                 });
             }
@@ -7834,8 +7837,8 @@ function renderColumnVisibilityDropdown() {
                 var yValsRaw = rows.map(function(r) { return parseFloat(String(r[yCi] || '').replace(/,/g, '')); }).filter(function(v) { return !isNaN(v); });
                 var yMean = yValsRaw.length ? yValsRaw.reduce(function(a, b) { return a + b; }, 0) / yValsRaw.length : 0;
 
-                document.getElementById('viz-empty-msg').classList.add('hidden');
-                document.getElementById('viz-chart-wrap').classList.remove('hidden');
+                document.getElementById('viz-empty-msg').style.display = 'none';
+                document.getElementById('viz-chart-wrap').style.display = 'flex';
 
                 var canvas = document.getElementById('viz-chart-canvas');
                 var ctx = canvas.getContext('2d');
@@ -7938,7 +7941,7 @@ function renderColumnVisibilityDropdown() {
                 aggRadios.forEach(function(r) {
                     r.onchange = function() {
                         var wrap = document.getElementById('viz-agg-method-wrap');
-                        if (wrap) wrap.classList.toggle('hidden', this.value !== 'group');
+                        if (wrap) wrap.style.display = this.value === 'group' ? '' : 'none';
                     };
                 });
                 setVizChartType('bar');
