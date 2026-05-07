@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.0.3  (2026-05-07) [최신]
+  v2.2.0.4  (2026-05-07) [최신]
+    - [추가] 파이 차트 슬라이스 레이블 옵션 (퍼센트/건수/합계금액/레이블명)
+    - [추가] 툴팁에 퍼센트/건수/합계 항상 표시
+
+  v2.2.0.3  (2026-05-07)
     - [수정] 그래프 생성 오류 try-catch 추가 (에러 메시지 표시)
     - [추가] 파이 구간 한국어 숫자 병기 (억/만 단위 실시간 표시)
 
@@ -111,7 +115,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.0.3</title>
+    <title>체납대장 분석 워크스테이션 v2.2.0.4</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -674,7 +678,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.3</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.4</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -927,6 +931,16 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     </div>
                     <div id="viz-bins-list" style="display:flex;flex-direction:column;gap:4px;"></div>
                     <button onclick="vizAddBin()" style="margin-top:4px;width:100%;font-size:10px;padding:3px;border:1px dashed #cbd5e1;border-radius:6px;color:#94a3b8;background:transparent;cursor:pointer;">+ 구간 추가</button>
+                  </div>
+                  <!-- 파이 레이블 옵션 -->
+                  <div id="viz-pie-label-section" style="display:none;">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">슬라이스 레이블</p>
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-name" checked> 레이블명</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-pct" checked> 퍼센트 (%)</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-count"> 건수</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-sum"> 합계금액</label>
+                    </div>
                   </div>
                   <!-- 생성 버튼 -->
                   <button onclick="generateVizChart()" style="padding:7px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;border-radius:8px;border:none;cursor:pointer;width:100%;">📊 그래프 생성</button>
@@ -1298,6 +1312,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.0.4</strong>: 파이 슬라이스 레이블 옵션 (퍼센트/건수/합계금액)</p>
                                 <p><strong class="theme-text">v2.2.0.3</strong>: 그래프 생성 오류 진단, 파이 구간 한국어 숫자 병기</p>
                                 <p><strong class="theme-text">v2.2.0.2</strong>: 시각화 패널 우측 드로어 전환, 구간 UI 수정, 차트 높이 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.1</strong>: 시각화 버튼 클릭 불가 버그 수정</p>
@@ -7625,9 +7640,11 @@ function renderColumnVisibilityDropdown() {
                 var aggSec = document.getElementById('viz-agg-section');
                 var binsSec = document.getElementById('viz-bins-section');
                 var yLabel = document.getElementById('viz-y-label');
+                var pieLabelSec = document.getElementById('viz-pie-label-section');
                 if (xSec) xSec.style.display = isBarLine ? '' : 'none';
                 if (aggSec) aggSec.style.display = isBarLine ? '' : 'none';
                 if (binsSec) binsSec.style.display = type === 'pie' ? '' : 'none';
+                if (pieLabelSec) pieLabelSec.style.display = type === 'pie' ? '' : 'none';
                 if (yLabel) yLabel.textContent = type === 'pie' ? '값 컬럼' : 'Y축 컬럼';
             }
 
@@ -7886,36 +7903,126 @@ function renderColumnVisibilityDropdown() {
 
                 if (_vizChartType === 'pie') {
                     readVizBins();
+                    var pieSums = []; // 합계금액 추적용
                     if (yColInfo && yColInfo.type === 'string') {
-                        var catMap = {};
+                        var catMap = {}, catSum = {};
                         rows.forEach(function(row) {
                             var v = row[yCi];
                             if (v === null || v === undefined || v === '') v = '(없음)';
                             catMap[v] = (catMap[v] || 0) + 1;
+                            var n = parseFloat(String(v).replace(/,/g,''));
+                            catSum[v] = (catSum[v] || 0) + (isNaN(n) ? 0 : n);
                         });
                         labels = Object.keys(catMap);
                         data = labels.map(function(k) { return catMap[k]; });
+                        pieSums = labels.map(function(k) { return catSum[k]; });
                     } else {
                         if (_vizBins.length === 0) { showToast('구간을 설정해주세요. (자동구간 버튼 활용)'); return; }
-                        var counts = _vizBins.map(function() { return 0; });
+                        var binStats = _vizBins.map(function() { return { count: 0, sum: 0 }; });
                         rows.forEach(function(row) {
                             var v = preprocessVal(row[yCi], prepMethod, yMean);
                             if (v === null) return;
                             _vizBins.forEach(function(bin, bi) {
-                                if (v >= bin.from && v < bin.to) counts[bi]++;
+                                if (v >= bin.from && v < bin.to) { binStats[bi].count++; binStats[bi].sum += v; }
                             });
                         });
-                        labels = _vizBins.map(function(bin) {
-                            return bin.label || (bin.from + ' ~ ' + bin.to);
-                        });
-                        data = counts;
+                        labels = _vizBins.map(function(bin) { return bin.label || (bin.from.toLocaleString() + ' ~ ' + bin.to.toLocaleString()); });
+                        data = binStats.map(function(s) { return s.count; });
+                        pieSums = binStats.map(function(s) { return s.sum; });
                     }
                     var palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
                     bgColors = labels.map(function(_, i) { return palette[i % palette.length]; });
+
+                    // 레이블 옵션 읽기
+                    var optName  = document.getElementById('viz-pie-label-name')  && document.getElementById('viz-pie-label-name').checked;
+                    var optPct   = document.getElementById('viz-pie-label-pct')   && document.getElementById('viz-pie-label-pct').checked;
+                    var optCount = document.getElementById('viz-pie-label-count') && document.getElementById('viz-pie-label-count').checked;
+                    var optSum   = document.getElementById('viz-pie-label-sum')   && document.getElementById('viz-pie-label-sum').checked;
+
+                    // 커스텀 datalabels 플러그인 (afterDatasetsDraw)
+                    var pieLabelPlugin = {
+                        id: 'vizPieLabels',
+                        afterDatasetsDraw: function(chart) {
+                            var ctx2 = chart.ctx;
+                            var total = chart.data.datasets[0].data.reduce(function(a,b){ return a+b; }, 0);
+                            chart.getDatasetMeta(0).data.forEach(function(arc, i) {
+                                var val = chart.data.datasets[0].data[i];
+                                if (total === 0 || val === 0) return;
+                                var pct = (val / total * 100);
+                                if (pct < 2) return; // 너무 작은 슬라이스는 생략
+                                var midAngle = (arc.startAngle + arc.endAngle) / 2;
+                                var r = (arc.innerRadius + arc.outerRadius) / 2;
+                                var x = arc.x + r * Math.cos(midAngle);
+                                var y = arc.y + r * Math.sin(midAngle);
+                                var lines = [];
+                                if (optName)  lines.push(chart.data.labels[i]);
+                                if (optPct)   lines.push(pct.toFixed(1) + '%');
+                                if (optCount) lines.push(val.toLocaleString() + '건');
+                                if (optSum)   lines.push((pieSums[i] || 0).toLocaleString() + '원');
+                                if (!lines.length) return;
+                                ctx2.save();
+                                ctx2.textAlign = 'center';
+                                ctx2.textBaseline = 'middle';
+                                ctx2.fillStyle = '#fff';
+                                ctx2.shadowColor = 'rgba(0,0,0,0.4)';
+                                ctx2.shadowBlur = 3;
+                                var lineH = 13;
+                                var startY = y - (lines.length - 1) * lineH / 2;
+                                lines.forEach(function(line, li) {
+                                    ctx2.font = li === 0 && optName ? 'bold 11px sans-serif' : '10px sans-serif';
+                                    ctx2.fillText(line, x, startY + li * lineH);
+                                });
+                                ctx2.restore();
+                            });
+                        }
+                    };
+
                     _vizChart = new Chart(ctx, {
                         type: 'pie',
                         data: { labels: labels, datasets: [{ data: data, backgroundColor: bgColors }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' } } }
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: {
+                                        generateLabels: function(chart) {
+                                            var total = chart.data.datasets[0].data.reduce(function(a,b){return a+b;},0);
+                                            return chart.data.labels.map(function(lbl, i) {
+                                                var val = chart.data.datasets[0].data[i];
+                                                var pct = total > 0 ? (val/total*100).toFixed(1) : '0.0';
+                                                var sub = [];
+                                                if (optPct)   sub.push(pct + '%');
+                                                if (optCount) sub.push(val.toLocaleString() + '건');
+                                                if (optSum)   sub.push((pieSums[i]||0).toLocaleString() + '원');
+                                                return {
+                                                    text: lbl + (sub.length ? ' (' + sub.join(', ') + ')' : ''),
+                                                    fillStyle: bgColors[i],
+                                                    strokeStyle: bgColors[i],
+                                                    index: i
+                                                };
+                                            });
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(ctx3) {
+                                            var val = ctx3.raw;
+                                            var total = ctx3.dataset.data.reduce(function(a,b){return a+b;},0);
+                                            var pct = total > 0 ? (val/total*100).toFixed(1) : '0.0';
+                                            var lines = [ctx3.label];
+                                            lines.push('퍼센트: ' + pct + '%');
+                                            lines.push('건수: ' + val.toLocaleString() + '건');
+                                            lines.push('합계: ' + (pieSums[ctx3.dataIndex]||0).toLocaleString() + '원');
+                                            return lines;
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        plugins: [pieLabelPlugin]
                     });
                 } else {
                     if (useGroup && xVal !== '__rowindex__') {
