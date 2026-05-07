@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.1.4  (2026-05-07) [최신]
+  v2.2.2.0  (2026-05-07) [최신]
+    - [추가] 대화형 튜토리얼 모드: 샘플 데이터 + 말풍선 + 진행 게이지 + 완료 보상
+    - [추가] 헤더 "🎮 튜토리얼" 버튼으로 진입
+
+  v2.2.1.4  (2026-05-07)
     - [개선] 막대/선 차트 통합 (내부 체크박스로 막대↔선 전환)
     - [추가] 막대/선 구간 모드: Y축 컬럼을 구간으로 나눠 집계 (건수/합계/평균)
 
@@ -135,7 +139,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.1.4</title>
+    <title>체납대장 분석 워크스테이션 v2.2.2.0</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -698,7 +702,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.4</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.2.0</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -709,6 +713,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <div id="file-info-placeholder" class="flex-1 min-w-0"></div>
                 <!-- 버튼들 -->
                 <div class="flex items-center gap-1 flex-shrink-0 ml-auto">
+                    <button id="tut-start-btn" onclick="startTutorial()" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:4px 8px;font-size:10px;font-weight:800;color:#16a34a;cursor:pointer;white-space:nowrap;" title="대화형 튜토리얼">🎮 튜토리얼</button>
                     <button id="download-app-btn" onclick="downloadThisApp()" class="p-1.5 bg-white border border-slate-200 hover:bg-blue-50 text-slate-500 rounded-lg transition-colors" title="앱 HTML 다운로드">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                     </button>
@@ -1355,6 +1360,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.2.0</strong>: 대화형 튜토리얼 (샘플 데이터 + 말풍선 + 게이지)</p>
                                 <p><strong class="theme-text">v2.2.1.4</strong>: 막대/선 통합 버튼, 구간 모드 추가</p>
                                 <p><strong class="theme-text">v2.2.1.3</strong>: 파이 건수 표시 버그 수정 (합계값으로 잘못 표시되던 문제)</p>
                                 <p><strong class="theme-text">v2.2.1.2</strong>: 나이구간 OOM 수정, 사업자번호 결측처리, 파이 집계기준 선택</p>
@@ -8403,5 +8409,381 @@ function renderColumnVisibilityDropdown() {
             }
         }
     </script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     대화형 튜토리얼 시스템
+     ════════════════════════════════════════════════════════════════ -->
+<div id="tut-overlay" style="display:none;position:fixed;inset:0;z-index:200000;pointer-events:none;">
+  <!-- 반투명 4분할 배경 (스포트라이트 구멍) -->
+  <div id="tut-bg-top"    style="position:absolute;background:rgba(15,23,42,.65);left:0;right:0;top:0;"></div>
+  <div id="tut-bg-left"   style="position:absolute;background:rgba(15,23,42,.65);top:0;bottom:0;left:0;"></div>
+  <div id="tut-bg-right"  style="position:absolute;background:rgba(15,23,42,.65);top:0;bottom:0;right:0;"></div>
+  <div id="tut-bg-bottom" style="position:absolute;background:rgba(15,23,42,.65);left:0;right:0;bottom:0;"></div>
+  <!-- 하이라이트 테두리 -->
+  <div id="tut-highlight" style="position:absolute;border:2.5px solid #22c55e;border-radius:8px;box-shadow:0 0 0 4px rgba(34,197,94,.25);transition:all .25s;pointer-events:none;"></div>
+  <!-- 진행 게이지 (상단 바) -->
+  <div style="position:absolute;top:0;left:0;right:0;height:4px;background:rgba(255,255,255,.15);pointer-events:none;">
+    <div id="tut-progress-bar" style="height:100%;background:linear-gradient(90deg,#22c55e,#86efac);width:0%;transition:width .5s ease;border-radius:0 2px 2px 0;"></div>
+  </div>
+  <!-- 진행 뱃지 -->
+  <div id="tut-badge" style="position:absolute;top:10px;right:16px;background:rgba(15,23,42,.85);border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:800;color:#86efac;pointer-events:none;"></div>
+  <!-- 말풍선 -->
+  <div id="tut-bubble" style="position:absolute;pointer-events:all;max-width:300px;min-width:220px;">
+    <div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 8px 32px rgba(0,0,0,.25);position:relative;">
+      <div id="tut-bubble-arrow" style="position:absolute;width:12px;height:12px;background:#fff;transform:rotate(45deg);"></div>
+      <!-- 캐릭터 + 제목 -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div style="font-size:24px;line-height:1;flex-shrink:0;">🤖</div>
+        <div>
+          <div id="tut-step-title" style="font-size:11px;font-weight:900;color:#1e293b;"></div>
+          <div id="tut-step-num" style="font-size:9px;color:#94a3b8;margin-top:1px;"></div>
+        </div>
+      </div>
+      <div id="tut-msg" style="font-size:11.5px;color:#334155;line-height:1.6;margin-bottom:10px;white-space:pre-wrap;"></div>
+      <!-- 버튼 행 -->
+      <div style="display:flex;gap:6px;align-items:center;">
+        <button id="tut-action-btn" onclick="tutDoAction()" style="flex:1;padding:6px 10px;background:#22c55e;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;"></button>
+        <button onclick="skipTutorial()" style="padding:5px 8px;background:transparent;color:#94a3b8;border:1px solid #e2e8f0;border-radius:7px;font-size:10px;cursor:pointer;">건너뛰기</button>
+      </div>
+      <!-- 완료 대기 안내 -->
+      <div id="tut-waiting" style="display:none;margin-top:8px;font-size:10px;color:#64748b;text-align:center;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 튜토리얼 완료 모달 -->
+<div id="tut-complete-modal" style="display:none;position:fixed;inset:0;z-index:210000;background:rgba(15,23,42,.7);display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:32px 28px;text-align:center;max-width:320px;box-shadow:0 24px 48px rgba(0,0,0,.3);animation:tutPop .4s cubic-bezier(.34,1.56,.64,1);">
+    <div style="font-size:48px;margin-bottom:12px;">🎉</div>
+    <div style="font-size:18px;font-weight:900;color:#1e293b;margin-bottom:6px;">튜토리얼 완료!</div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:20px;line-height:1.6;">6개 기능을 모두 체험했습니다.<br>이제 실제 데이터로 자유롭게 사용해보세요.</div>
+    <div id="tut-reward-box" style="background:#f0fdf4;border:1px solid #86efac;border-radius:10px;padding:12px;margin-bottom:16px;font-size:11px;color:#15803d;font-weight:700;">🎁 준비 중인 보상이 곧 공개됩니다!</div>
+    <button onclick="closeTutorialComplete()" style="width:100%;padding:10px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;">확인</button>
+  </div>
+</div>
+
+<style>
+@keyframes tutPop { from { transform:scale(.7); opacity:0; } to { transform:scale(1); opacity:1; } }
+@keyframes tutPulse { 0%,100% { box-shadow:0 0 0 4px rgba(34,197,94,.25); } 50% { box-shadow:0 0 0 8px rgba(34,197,94,.4); } }
+#tut-highlight { animation: tutPulse 1.8s ease-in-out infinite; }
+</style>
+
+<script>
+(function() {
+// ── 샘플 데이터 ──────────────────────────────────────────────────
+var TUT_SAMPLE = {
+    sheetName: '체납대장_샘플',
+    headers: ['성명','주민번호','체납액','납부기한','구분','구역'],
+    rows: [
+        ['홍길동','9001011234567',1500000,'2024-03-15','취득세','종로구'],
+        ['김영희','8506152345678',3200000,'2024-01-20','재산세','강남구'],
+        ['이철수','7212253456789',750000,'2024-04-10','자동차세','마포구'],
+        ['박민준','9503044567890',9800000,'2023-12-31','종합소득세','서초구'],
+        ['최수연','8809155678901',430000,'2024-05-01','주민세','송파구'],
+        ['정대한','6601016789012',21000000,'2024-02-28','법인세','영등포구'],
+        ['윤지수','9211187890123','취득세',480000,'2024-06-15','종로구'],  // 순서 뒤섞인 데이터
+        ['강민호','8004108901234',6700000,'2024-03-01','재산세','강북구'],
+        ['신예진','9507159012345',320000,'2024-07-31','자동차세','용산구'],
+        ['오준혁','7808160123456',14500000,'2023-11-30','종합소득세','강남구'],
+        ['임하늘','9102171234560',890000,'2024-04-20','취득세','마포구'],
+        ['한소희','8303182345671',2100000,'2024-01-15','재산세','서초구'],
+        ['배지훈','9604193456782',550000,'2024-05-25','주민세','강남구'],
+        ['권나영','7509204567893',7300000,'2024-02-10','법인세','종로구'],
+        ['서동우','8805215678904',1250000,'2024-03-20','자동차세','마포구'],
+        ['문지혜','9306226789015',3900000,'2024-06-30','취득세','송파구'],
+        ['노태현','7110237890126',18000000,'2024-01-05','종합소득세','강남구'],
+        ['유가은','8801248901237',670000,'2024-07-10','재산세','영등포구'],
+        ['안성민','9012259012348',4200000,'2024-04-05','재산세','강북구'],
+        ['조미래','8607260123459',950000,'2024-05-15','주민세','서초구'],
+    ]
+};
+
+// 순서 뒤섞인 잘못된 행 수정
+TUT_SAMPLE.rows[6] = ['윤지수','9211187890123',480000,'2024-06-15','취득세','종로구'];
+
+// ── 상태 ────────────────────────────────────────────────────────
+var _tutActive = false;
+var _tutStep = 0;
+
+// ── 단계 정의 ────────────────────────────────────────────────────
+var TUT_STEPS = [
+    {
+        id: 'load',
+        title: '샘플 데이터 불러오기',
+        msg: '안녕하세요! 체납대장 워크스테이션에 오신 걸 환영해요.\n\n실제로는 엑셀 파일을 드래그하거나 폴더를 열어 불러옵니다.\n지금은 연습용 샘플 데이터로 시작해볼게요!',
+        target: null,
+        actionLabel: '📂 샘플 데이터 불러오기',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    },
+    {
+        id: 'search',
+        title: '통합 검색',
+        msg: '상단 검색창에 이름이나 금액을 입력하면\n모든 열을 동시에 검색합니다.\n\n"홍길동" 또는 "강남"을 입력하고\nEnter를 눌러보세요!',
+        target: '#search-input',
+        actionLabel: '✅ 검색해봤어요!',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    },
+    {
+        id: 'filter',
+        title: '열 필터',
+        msg: '열 헤더 아래 입력칸에 값을 입력하면\n해당 열만 필터링됩니다.\n\n헤더 아래 필터 입력칸에 "강남"을\n입력해보세요!',
+        target: null,
+        actionLabel: '✅ 필터해봤어요!',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    },
+    {
+        id: 'sort',
+        title: '열 정렬',
+        msg: '헤더를 클릭하면\n오름차순 → 내림차순 → 해제 순으로\n정렬됩니다.\n\n"체납액" 헤더를 클릭해보세요!',
+        target: null,
+        actionLabel: '✅ 정렬해봤어요!',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    },
+    {
+        id: 'edit',
+        title: '셀 편집',
+        msg: '셀을 더블클릭하거나 F2를 누르면\n직접 편집할 수 있어요.\nCtrl+Z로 실행취소도 됩니다!\n\n아무 셀이나 더블클릭해서 수정하고\nEnter로 확정해보세요.',
+        target: null,
+        actionLabel: '✅ 편집해봤어요!',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    },
+    {
+        id: 'viz',
+        title: '데이터 시각화',
+        msg: '상단 "특수기능" 버튼 →\n"📊 데이터 시각화"를 클릭하세요.\n\n체납액 열을 Y축으로 선택 후\n📊 그래프 생성을 눌러보세요!',
+        target: '#special-func-btn',
+        actionLabel: '✅ 그래프 만들어봤어요!',
+        waitMsg: null,
+        autoWait: false,
+        check: null
+    }
+];
+
+// ── 핵심 함수들 ──────────────────────────────────────────────────
+window.startTutorial = function() {
+    _tutActive = true;
+    _tutStep = 0;
+    window._tutEditDone = false;
+    window._tutVizDone = false;
+    document.getElementById('tut-overlay').style.display = 'block';
+    _tutShowStep(0);
+    _tutStartObserver();
+};
+
+window.skipTutorial = function() {
+    _tutActive = false;
+    document.getElementById('tut-overlay').style.display = 'none';
+};
+
+window.closeTutorialComplete = function() {
+    document.getElementById('tut-complete-modal').style.display = 'none';
+};
+
+window.tutDoAction = function() {
+    var step = TUT_STEPS[_tutStep];
+    if (!step) return;
+    if (step.id === 'load') {
+        _tutLoadSample();
+        _tutAdvance();
+    } else {
+        _tutAdvance();
+    }
+};
+
+function _tutAdvance() {
+    _tutStep++;
+    if (_tutStep >= TUT_STEPS.length) {
+        _tutFinish();
+    } else {
+        _tutShowStep(_tutStep);
+    }
+}
+
+function _tutFinish() {
+    _tutActive = false;
+    document.getElementById('tut-progress-bar').style.width = '100%';
+    setTimeout(function() {
+        document.getElementById('tut-overlay').style.display = 'none';
+        var modal = document.getElementById('tut-complete-modal');
+        modal.style.display = 'flex';
+    }, 600);
+}
+
+function _tutShowStep(idx) {
+    var step = TUT_STEPS[idx];
+    if (!step) return;
+    var total = TUT_STEPS.length;
+    var pct = Math.round(idx / total * 100);
+
+    document.getElementById('tut-progress-bar').style.width = pct + '%';
+    document.getElementById('tut-badge').textContent = (idx + 1) + ' / ' + total;
+    document.getElementById('tut-step-title').textContent = step.title;
+    document.getElementById('tut-step-num').textContent = 'STEP ' + (idx + 1);
+    document.getElementById('tut-msg').textContent = step.msg;
+    document.getElementById('tut-action-btn').textContent = step.actionLabel;
+    var waiting = document.getElementById('tut-waiting');
+    if (step.waitMsg && step.autoWait) {
+        waiting.textContent = '⏳ ' + step.waitMsg;
+        waiting.style.display = 'block';
+    } else {
+        waiting.style.display = 'none';
+    }
+
+    // 하이라이트 타겟
+    var targetEl = step.target ? document.querySelector(step.target) : null;
+    _tutPositionHighlight(targetEl);
+    _tutPositionBubble(targetEl);
+}
+
+function _tutPositionHighlight(el) {
+    var hl = document.getElementById('tut-highlight');
+    var top = document.getElementById('tut-bg-top');
+    var left = document.getElementById('tut-bg-left');
+    var right = document.getElementById('tut-bg-right');
+    var bottom = document.getElementById('tut-bg-bottom');
+    var pad = 8;
+
+    if (!el) {
+        // 타겟 없으면 화면 중앙에 구멍 없이 어둡게
+        top.style.cssText = 'position:absolute;background:rgba(15,23,42,.65);left:0;right:0;top:0;height:100%';
+        left.style.cssText = 'position:absolute;background:transparent;';
+        right.style.cssText = 'position:absolute;background:transparent;';
+        bottom.style.cssText = 'position:absolute;background:transparent;';
+        hl.style.display = 'none';
+        return;
+    }
+
+    var r = el.getBoundingClientRect();
+    var x = r.left - pad, y = r.top - pad, w = r.width + pad*2, h = r.height + pad*2;
+    var vw = window.innerWidth, vh = window.innerHeight;
+
+    top.style.cssText    = 'position:absolute;background:rgba(15,23,42,.65);left:0;right:0;top:0;height:' + y + 'px';
+    bottom.style.cssText = 'position:absolute;background:rgba(15,23,42,.65);left:0;right:0;bottom:0;height:' + (vh - y - h) + 'px;top:auto';
+    left.style.cssText   = 'position:absolute;background:rgba(15,23,42,.65);top:' + y + 'px;height:' + h + 'px;left:0;width:' + x + 'px';
+    right.style.cssText  = 'position:absolute;background:rgba(15,23,42,.65);top:' + y + 'px;height:' + h + 'px;right:0;width:' + (vw - x - w) + 'px';
+    hl.style.cssText     = 'position:absolute;border:2.5px solid #22c55e;border-radius:8px;box-shadow:0 0 0 4px rgba(34,197,94,.25);animation:tutPulse 1.8s ease-in-out infinite;left:' + x + 'px;top:' + y + 'px;width:' + w + 'px;height:' + h + 'px;pointer-events:none;';
+    hl.style.display = 'block';
+}
+
+function _tutPositionBubble(targetEl) {
+    var bubble = document.getElementById('tut-bubble');
+    var arrow = document.getElementById('tut-bubble-arrow');
+    var bw = 300, bh = 200; // 예상 크기
+    var pad = 16;
+    var vw = window.innerWidth, vh = window.innerHeight;
+
+    var x, y, arrowPos;
+
+    if (!targetEl) {
+        x = Math.round(vw/2 - bw/2);
+        y = Math.round(vh/2 - bh/2);
+        arrow.style.display = 'none';
+    } else {
+        var r = targetEl.getBoundingClientRect();
+        arrow.style.display = 'block';
+        // 아래쪽에 충분한 공간이 있으면 아래, 없으면 위
+        if (r.bottom + 16 + bh < vh) {
+            y = r.bottom + 16;
+            arrowPos = 'top';
+        } else {
+            y = r.top - 16 - bh;
+            arrowPos = 'bottom';
+        }
+        x = Math.min(Math.max(r.left, pad), vw - bw - pad);
+        y = Math.max(y, pad);
+
+        if (arrowPos === 'top') {
+            arrow.style.cssText = 'position:absolute;width:12px;height:12px;background:#fff;transform:rotate(45deg);top:-6px;left:20px;box-shadow:-2px -2px 4px rgba(0,0,0,.05)';
+        } else {
+            arrow.style.cssText = 'position:absolute;width:12px;height:12px;background:#fff;transform:rotate(45deg);bottom:-6px;left:20px;box-shadow:2px 2px 4px rgba(0,0,0,.05)';
+        }
+    }
+    bubble.style.left = x + 'px';
+    bubble.style.top = y + 'px';
+}
+
+// ── 샘플 데이터 로드 ─────────────────────────────────────────────
+function _tutLoadSample() {
+    try {
+        var sheetName = TUT_SAMPLE.sheetName;
+        var headers = TUT_SAMPLE.headers;
+        var rawRows = TUT_SAMPLE.rows;
+
+        var hs = headers.slice();
+        var ds = rawRows.map(function(row) {
+            var obj = {};
+            row.forEach(function(v, ci) { obj[ci] = { value: v }; });
+            return obj;
+        });
+
+        parsedSheetsCache[sheetName] = { headerStore: hs, dataStore: ds };
+
+        // currentSheetNames에 추가
+        if (currentSheetNames.indexOf(sheetName) === -1) {
+            currentSheetNames.push(sheetName);
+        }
+        // renderTabs가 있으면 호출
+        if (typeof renderTabs === 'function') renderTabs(currentSheetNames);
+        // loadSheet로 활성화 (인덱스 사용)
+        var idx = currentSheetNames.indexOf(sheetName);
+        loadSheet(idx);
+    } catch(e) {
+        alert('샘플 로드 오류: ' + e.message);
+    }
+}
+
+// ── 자동 감지 (현재 미사용 - 수동 완료 방식) ─────────────────────
+function _tutStartObserver() {}
+
+// ── 기존 함수에 훅 연결 ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    // 튜토리얼 버튼 표시
+    var btn = document.getElementById('tut-start-btn');
+    if (btn) btn.style.display = '';
+
+    // 셀 편집 감지: contenteditable blur 또는 기존 편집 함수 래핑
+    document.addEventListener('dblclick', function(e) {
+        var cell = e.target.closest('td[contenteditable], td.editing, [data-editable]');
+        if (cell && _tutActive) window._tutEditDone = true;
+    });
+    // F2 편집 감지
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'F2' && _tutActive) window._tutEditDone = true;
+    });
+
+    // 시각화 그래프 생성 감지
+    if (typeof generateVizChart === 'function') {
+        var _origViz = window.generateVizChart;
+        window.generateVizChart = function() {
+            window._tutVizDone = true;
+            return _origViz.apply(this, arguments);
+        };
+    }
+
+    // 정렬 감지: 헤더 클릭 이벤트 수신 후 _currentSortCol 확인
+    document.addEventListener('click', function(e) {
+        var th = e.target.closest('th[data-col-idx], th.sortable, .sort-header');
+        if (th && _tutActive) {
+            setTimeout(function() {
+                if (window._currentSortCol !== undefined && window._currentSortCol !== null) {
+                    window._tutSortDone = true;
+                }
+            }, 200);
+        }
+    });
+});
+
+})();
+</script>
 </body>
 </html>
