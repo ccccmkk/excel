@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.1.2  (2026-05-07) [최신]
+  v2.2.1.3  (2026-05-07) [최신]
+    - [수정] 파이 차트 툴팁·레이블·범례에서 건수가 합계값으로 표시되던 버그 수정
+
+  v2.2.1.2  (2026-05-07)
     - [수정] 나이 구간 OOM 방지 (최대 120세 캡 + 루프 횟수 제한)
     - [수정] 사업자번호 10자리를 주민번호로 오인식하여 결측 처리되던 버그 수정
     - [추가] 파이 차트 집계 기준 선택 (건수 / 금액 합계)
@@ -128,7 +131,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.1.2</title>
+    <title>체납대장 분석 워크스테이션 v2.2.1.3</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -691,7 +694,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.2</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.3</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1345,6 +1348,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.1.3</strong>: 파이 건수 표시 버그 수정 (합계값으로 잘못 표시되던 문제)</p>
                                 <p><strong class="theme-text">v2.2.1.2</strong>: 나이구간 OOM 수정, 사업자번호 결측처리, 파이 집계기준 선택</p>
                                 <p><strong class="theme-text">v2.2.1.1</strong>: 특수기능 드롭다운 가림 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.1.0</strong>: 자동구간 전략 (로그/균등/나이), 주민번호→나이 파생 컬럼</p>
@@ -8118,7 +8122,7 @@ function renderColumnVisibilityDropdown() {
 
                 if (_vizChartType === 'pie') {
                     readVizBins();
-                    var pieSums = [];
+                    var pieSums = [], pieCounts = [];
                     // 파이 집계 방식 읽기
                     var pieAggMode = (document.getElementById('viz-pie-agg-sum') && document.getElementById('viz-pie-agg-sum').checked) ? 'sum' : 'count';
                     var pieSumColIdx = pieAggMode === 'sum' ? parseInt(document.getElementById('viz-pie-sum-col') && document.getElementById('viz-pie-sum-col').value) : -1;
@@ -8139,6 +8143,7 @@ function renderColumnVisibilityDropdown() {
                             ? labels.map(function(k){ return catSumMap[k] || 0; })
                             : labels.map(function(k){ return catMap[k]; });
                         pieSums = labels.map(function(k){ return catSumMap[k] || 0; });
+                        pieCounts = labels.map(function(k){ return catMap[k] || 0; });
                     } else {
                         if (_vizBins.length === 0) { showToast('구간을 설정해주세요. (자동구간 버튼 활용)'); return; }
                         var binStats = _vizBins.map(function() { return { count: 0, sum: 0 }; });
@@ -8157,6 +8162,7 @@ function renderColumnVisibilityDropdown() {
                             ? binStats.map(function(s){ return s.sum; })
                             : binStats.map(function(s){ return s.count; });
                         pieSums = binStats.map(function(s){ return s.sum; });
+                        pieCounts = binStats.map(function(s){ return s.count; });
                     }
                     var palette = ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
                     bgColors = labels.map(function(_, i) { return palette[i % palette.length]; });
@@ -8185,7 +8191,7 @@ function renderColumnVisibilityDropdown() {
                                 var lines = [];
                                 if (optName)  lines.push(chart.data.labels[i]);
                                 if (optPct)   lines.push(pct.toFixed(1) + '%');
-                                if (optCount) lines.push(val.toLocaleString() + '건');
+                                if (optCount) lines.push((pieCounts[i] || 0).toLocaleString() + '건');
                                 if (optSum)   lines.push((pieSums[i] || 0).toLocaleString() + '원');
                                 if (!lines.length) return;
                                 ctx2.save();
@@ -8222,7 +8228,7 @@ function renderColumnVisibilityDropdown() {
                                                 var pct = total > 0 ? (val/total*100).toFixed(1) : '0.0';
                                                 var sub = [];
                                                 if (optPct)   sub.push(pct + '%');
-                                                if (optCount) sub.push(val.toLocaleString() + '건');
+                                                if (optCount) sub.push((pieCounts[i]||0).toLocaleString() + '건');
                                                 if (optSum)   sub.push((pieSums[i]||0).toLocaleString() + '원');
                                                 return {
                                                     text: lbl + (sub.length ? ' (' + sub.join(', ') + ')' : ''),
@@ -8242,7 +8248,7 @@ function renderColumnVisibilityDropdown() {
                                             var pct = total > 0 ? (val/total*100).toFixed(1) : '0.0';
                                             var lines = [ctx3.label];
                                             lines.push('퍼센트: ' + pct + '%');
-                                            lines.push('건수: ' + val.toLocaleString() + '건');
+                                            lines.push('건수: ' + (pieCounts[ctx3.dataIndex]||0).toLocaleString() + '건');
                                             lines.push('합계: ' + (pieSums[ctx3.dataIndex]||0).toLocaleString() + '원');
                                             return lines;
                                         }
