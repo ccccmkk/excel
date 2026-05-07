@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.0.2  (2026-05-07) [최신]
+  v2.2.0.3  (2026-05-07) [최신]
+    - [수정] 그래프 생성 오류 try-catch 추가 (에러 메시지 표시)
+    - [추가] 파이 구간 한국어 숫자 병기 (억/만 단위 실시간 표시)
+
+  v2.2.0.2  (2026-05-07)
     - [수정] 시각화 패널: 우측 드로어로 변경 (표와 동시에 표시)
     - [수정] 파이 구간 UI 레이아웃 (입력칸 잘림 해결)
     - [수정] 차트 캔버스 높이 0 버그 (그래프 미표시 해결)
@@ -107,7 +111,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.0.2</title>
+    <title>체납대장 분석 워크스테이션 v2.2.0.3</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -670,7 +674,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.2</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.3</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1294,6 +1298,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.0.3</strong>: 그래프 생성 오류 진단, 파이 구간 한국어 숫자 병기</p>
                                 <p><strong class="theme-text">v2.2.0.2</strong>: 시각화 패널 우측 드로어 전환, 구간 UI 수정, 차트 높이 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.1</strong>: 시각화 버튼 클릭 불가 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.0</strong>: 데이터 시각화 기능 추가 (막대/선/파이 차트, 전처리, 집계)</p>
@@ -7768,20 +7773,52 @@ function renderColumnVisibilityDropdown() {
                 renderVizBins();
             }
 
+            function toKorNum(n) {
+                if (n === null || n === undefined || isNaN(n)) return '';
+                var abs = Math.abs(n);
+                var sign = n < 0 ? '-' : '';
+                if (abs === 0) return '0';
+                var jo = Math.floor(abs / 1e12);
+                var eok = Math.floor((abs % 1e12) / 1e8);
+                var man = Math.floor((abs % 1e8) / 1e4);
+                var rest = abs % 1e4;
+                var parts = [];
+                if (jo)   parts.push(jo + '조');
+                if (eok)  parts.push(eok + '억');
+                if (man)  parts.push(man + '만');
+                if (rest) parts.push(rest.toLocaleString());
+                return sign + parts.join(' ');
+            }
+
             function renderVizBins() {
                 var list = document.getElementById('viz-bins-list');
                 if (!list) return;
                 list.innerHTML = '';
                 _vizBins.forEach(function(bin, idx) {
+                    var fromKor = toKorNum(bin.from);
+                    var toKor   = toKorNum(bin.to);
                     var row = document.createElement('div');
                     row.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:4px 6px;display:flex;flex-direction:column;gap:3px;';
                     row.innerHTML = '<div style="display:flex;align-items:center;gap:4px;">'
-                        + '<input type="number" value="' + bin.from + '" class="viz-bin-from" style="flex:1;min-width:0;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
-                        + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0;">~</span>'
-                        + '<input type="number" value="' + bin.to + '" class="viz-bin-to" style="flex:1;min-width:0;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
-                        + '<button onclick="vizRemoveBin(' + idx + ')" style="flex-shrink:0;color:#f87171;font-weight:900;background:none;border:none;cursor:pointer;font-size:12px;line-height:1;">✕</button>'
+                        + '<div style="flex:1;min-width:0;">'
+                        +   '<input type="number" value="' + bin.from + '" class="viz-bin-from" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
+                        +   '<div style="font-size:9px;color:#6366f1;margin-top:1px;padding-left:2px;">' + (fromKor || '') + '</div>'
                         + '</div>'
-                        + '<input type="text" placeholder="레이블(비워두면 자동)" value="' + (bin.label || '') + '" class="viz-bin-label" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">';
+                        + '<span style="font-size:10px;color:#94a3b8;flex-shrink:0;padding:0 2px;">~</span>'
+                        + '<div style="flex:1;min-width:0;">'
+                        +   '<input type="number" value="' + bin.to + '" class="viz-bin-to" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">'
+                        +   '<div style="font-size:9px;color:#6366f1;margin-top:1px;padding-left:2px;">' + (toKor || '') + '</div>'
+                        + '</div>'
+                        + '<button onclick="vizRemoveBin(' + idx + ')" style="flex-shrink:0;color:#f87171;font-weight:900;background:none;border:none;cursor:pointer;font-size:12px;line-height:1;align-self:flex-start;padding-top:2px;">✕</button>'
+                        + '</div>'
+                        + '<input type="text" placeholder="레이블 (비워두면 자동)" value="' + (bin.label || '') + '" class="viz-bin-label" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:4px;padding:2px 4px;" data-idx="' + idx + '">';
+                    // 숫자 변경 시 한국어 실시간 업데이트
+                    var fromInput = row.querySelector('.viz-bin-from');
+                    var toInput   = row.querySelector('.viz-bin-to');
+                    var fromKorEl = row.querySelectorAll('div[style*="color:#6366f1"]')[0];
+                    var toKorEl   = row.querySelectorAll('div[style*="color:#6366f1"]')[1];
+                    fromInput.oninput = function() { if(fromKorEl) fromKorEl.textContent = toKorNum(parseFloat(this.value)); };
+                    toInput.oninput   = function() { if(toKorEl)   toKorEl.textContent   = toKorNum(parseFloat(this.value)); };
                     list.appendChild(row);
                 });
             }
@@ -7812,6 +7849,9 @@ function renderColumnVisibilityDropdown() {
             }
 
             window.generateVizChart = function generateVizChart() {
+                try { _generateVizChartImpl(); } catch(e) { alert('그래프 오류: ' + e.message + '\n' + e.stack); }
+            }
+            function _generateVizChartImpl() {
                 if (typeof Chart === 'undefined') { showToast('Chart.js가 로드되지 않았습니다.'); return; }
                 if (_vizChart) { _vizChart.destroy(); _vizChart = null; }
 
