@@ -5,7 +5,10 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.0.0  (2026-05-07) [최신]
+  v2.2.0.1  (2026-05-07) [최신]
+    - [수정] 시각화 함수 전역 노출 (onclick 핸들러 접근 불가 버그 수정)
+
+  v2.2.0.0  (2026-05-07)
     - [추가] 데이터 시각화 기능 (막대/선/파이 차트, 전처리, 집계)
 
   v2.1.7.1  (2026-05-06)
@@ -99,7 +102,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.0.0</title>
+    <title>체납대장 분석 워크스테이션 v2.2.0.1</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -662,7 +665,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.0</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.1</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1294,6 +1297,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.0.1</strong>: 시각화 버튼 클릭 불가 버그 수정</p>
                                 <p><strong class="theme-text">v2.2.0.0</strong>: 데이터 시각화 기능 추가 (막대/선/파이 차트, 전처리, 집계)</p>
                                 <p><strong class="theme-text">v2.1.7.1</strong>: 복구 시 "_복구됨" 파일 새로 생성 (덮어쓰기 방지)</p>
                                 <p><strong class="theme-text">v2.1.7.0</strong>: .wstation/ 통합 폴더, 변경 로그, 복구 탭 추가</p>
@@ -7572,7 +7576,7 @@ function renderColumnVisibilityDropdown() {
             // ──────────────────────────────────────────────────────────
             // switchMainTab: 시각화 / 비교 패널 전환
             // ──────────────────────────────────────────────────────────
-            function switchMainTab(tab) {
+            window.switchMainTab = function switchMainTab(tab) {
                 // 드롭다운 닫기
                 var dd = document.getElementById('special-func-dropdown');
                 if (dd) dd.style.display = 'none';
@@ -7599,7 +7603,7 @@ function renderColumnVisibilityDropdown() {
             var _vizDetectedCols = [];
             var _vizBins = [];
 
-            function setVizChartType(type) {
+            window.setVizChartType = function setVizChartType(type) {
                 _vizChartType = type;
                 document.querySelectorAll('.viz-type-btn').forEach(function(b) {
                     b.classList.remove('bg-blue-600','text-white','border-blue-600');
@@ -7639,7 +7643,7 @@ function renderColumnVisibilityDropdown() {
                 return result;
             }
 
-            function runVizColumnDetect() {
+            window.runVizColumnDetect = function runVizColumnDetect() {
                 var sheet = getCurrentSheetData();
                 if (!sheet || sheet.length < 2) {
                     var info = document.getElementById('viz-col-detect-info');
@@ -7742,7 +7746,7 @@ function renderColumnVisibilityDropdown() {
                 return n;
             }
 
-            function vizAutoSuggestBins() {
+            window.vizAutoSuggestBins = function vizAutoSuggestBins() {
                 var yCol = document.getElementById('viz-y-col');
                 if (!yCol) return;
                 var ci = parseInt(yCol.value);
@@ -7779,13 +7783,13 @@ function renderColumnVisibilityDropdown() {
                 });
             }
 
-            function vizAddBin() {
+            window.vizAddBin = function vizAddBin() {
                 var last = _vizBins[_vizBins.length - 1];
                 _vizBins.push({ from: last ? last.to : 0, to: last ? last.to + 1000 : 1000, label: '' });
                 renderVizBins();
             }
 
-            function vizRemoveBin(idx) {
+            window.vizRemoveBin = function vizRemoveBin(idx) {
                 _vizBins.splice(idx, 1);
                 renderVizBins();
             }
@@ -7804,7 +7808,7 @@ function renderColumnVisibilityDropdown() {
                 }
             }
 
-            function generateVizChart() {
+            window.generateVizChart = function generateVizChart() {
                 if (typeof Chart === 'undefined') { showToast('Chart.js가 로드되지 않았습니다.'); return; }
                 if (_vizChart) { _vizChart.destroy(); _vizChart = null; }
 
