@@ -8535,7 +8535,7 @@ var TUT_STEPS = [
         title: '🎉 환영합니다!',
         msg: '체납대장 워크스테이션에 오신 걸 환영해요!\n\n20명의 샘플 체납 데이터가 준비되었어요.\n실제 기능을 하나씩 직접 체험해봅시다!',
         target: null,
-        actionLabel: '▶ 튜토리얼 시작!',
+        actionLabel: '📂 샘플 데이터 로드 후 시작!',
         autoDetect: null
     },
     {
@@ -8582,10 +8582,6 @@ var TUT_STEPS = [
 
 // ── 핵심 함수들 ──────────────────────────────────────────────────
 window.startTutorial = function() {
-    // 샘플 데이터 즉시 자동 로드 (에러가 나도 튜토리얼은 열림)
-    try {
-        if (typeof window._tutLoadSample === 'function') window._tutLoadSample();
-    } catch(e) { console.warn('샘플 로드 실패:', e); }
     _tutActive = true;
     _tutStep = 0;
     var ov = document.getElementById('tut-overlay');
@@ -8605,6 +8601,12 @@ window.closeTutorialComplete = function() {
 
 window.tutDoAction = function() {
     if (_tutAutoCleanup) { _tutAutoCleanup(); _tutAutoCleanup = null; }
+    // 환영 단계 → 샘플 데이터 로드 후 진행
+    if (TUT_STEPS[_tutStep] && TUT_STEPS[_tutStep].id === 'welcome') {
+        try {
+            if (typeof window._tutLoadSample === 'function') window._tutLoadSample();
+        } catch(e) { console.warn('샘플 로드 실패:', e); }
+    }
     _tutAdvance();
 };
 
