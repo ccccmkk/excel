@@ -8416,9 +8416,7 @@ function renderColumnVisibilityDropdown() {
                     ['조미래','8607260123459',950000,'2024-05-15','주민세','서초구'],
                 ];
                 var ds = rawRows.map(function(row) {
-                    var obj = {};
-                    row.forEach(function(v, ci) { obj[ci] = { value: v }; });
-                    return obj;
+                    return row.map(function(v) { return { value: v }; });
                 });
                 parsedSheetsCache[sheetName] = { headerStore: headers.slice(), dataStore: ds };
                 if (currentSheetNames.indexOf(sheetName) === -1) currentSheetNames.push(sheetName);
