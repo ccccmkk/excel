@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.1.3  (2026-05-07) [최신]
+  v2.2.1.4  (2026-05-07) [최신]
+    - [개선] 막대/선 차트 통합 (내부 체크박스로 막대↔선 전환)
+    - [추가] 막대/선 구간 모드: Y축 컬럼을 구간으로 나눠 집계 (건수/합계/평균)
+
+  v2.2.1.3  (2026-05-07)
     - [수정] 파이 차트 툴팁·레이블·범례에서 건수가 합계값으로 표시되던 버그 수정
 
   v2.2.1.2  (2026-05-07)
@@ -131,7 +135,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.1.3</title>
+    <title>체납대장 분석 워크스테이션 v2.2.1.4</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -694,7 +698,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.3</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.4</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -891,9 +895,12 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                     <div style="flex:1;">
                       <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">차트 종류</p>
                       <div style="display:flex;gap:4px;">
-                        <button onclick="setVizChartType('bar')" id="viz-type-bar" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">막대</button>
-                        <button onclick="setVizChartType('line')" id="viz-type-line" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">선</button>
+                        <button onclick="setVizChartType('barline')" id="viz-type-barline" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">막대/선</button>
                         <button onclick="setVizChartType('pie')" id="viz-type-pie" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">파이</button>
+                      </div>
+                      <div id="viz-barline-sub" style="display:none;margin-top:5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-use-line"> 선 그래프</label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;" title="Y축 컬럼을 구간으로 나눠 X축으로 사용"><input type="checkbox" id="viz-barline-use-bins"> 구간 모드</label>
                       </div>
                     </div>
                   </div>
@@ -1348,6 +1355,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.1.4</strong>: 막대/선 통합 버튼, 구간 모드 추가</p>
                                 <p><strong class="theme-text">v2.2.1.3</strong>: 파이 건수 표시 버그 수정 (합계값으로 잘못 표시되던 문제)</p>
                                 <p><strong class="theme-text">v2.2.1.2</strong>: 나이구간 OOM 수정, 사업자번호 결측처리, 파이 집계기준 선택</p>
                                 <p><strong class="theme-text">v2.2.1.1</strong>: 특수기능 드롭다운 가림 버그 수정</p>
@@ -7662,7 +7670,7 @@ function renderColumnVisibilityDropdown() {
             // 데이터 시각화
             // ──────────────────────────────────────────────────────────
             var _vizChart = null;
-            var _vizChartType = 'bar';
+            var _vizChartType = 'barline';
             var _vizDetectedCols = [];
             var _vizBins = [];
 
@@ -7679,16 +7687,19 @@ function renderColumnVisibilityDropdown() {
                     active.style.color = '#fff';
                     active.style.borderColor = '#2563eb';
                 }
-                var isBarLine = type === 'bar' || type === 'line';
-                var xSec = document.getElementById('viz-x-section');
-                var aggSec = document.getElementById('viz-agg-section');
-                var binsSec = document.getElementById('viz-bins-section');
-                var yLabel = document.getElementById('viz-y-label');
-                var pieLabelSec  = document.getElementById('viz-pie-label-section');
-                var pieAggSec    = document.getElementById('viz-pie-agg-section');
-                if (xSec) xSec.style.display = isBarLine ? '' : 'none';
-                if (aggSec) aggSec.style.display = isBarLine ? '' : 'none';
-                if (binsSec) binsSec.style.display = type === 'pie' ? '' : 'none';
+                var isBarLine = type === 'barline';
+                var useBinMode = isBarLine && document.getElementById('viz-barline-use-bins') && document.getElementById('viz-barline-use-bins').checked;
+                var xSec        = document.getElementById('viz-x-section');
+                var aggSec      = document.getElementById('viz-agg-section');
+                var binsSec     = document.getElementById('viz-bins-section');
+                var yLabel      = document.getElementById('viz-y-label');
+                var pieLabelSec = document.getElementById('viz-pie-label-section');
+                var pieAggSec   = document.getElementById('viz-pie-agg-section');
+                var barlineSub  = document.getElementById('viz-barline-sub');
+                if (barlineSub) barlineSub.style.display = isBarLine ? 'flex' : 'none';
+                if (xSec)        xSec.style.display        = (isBarLine && !useBinMode) ? '' : 'none';
+                if (aggSec)      aggSec.style.display      = isBarLine ? '' : 'none';
+                if (binsSec)     binsSec.style.display     = (type === 'pie' || useBinMode) ? '' : 'none';
                 if (pieLabelSec) pieLabelSec.style.display = type === 'pie' ? '' : 'none';
                 if (pieAggSec)   pieAggSec.style.display   = type === 'pie' ? '' : 'none';
                 if (yLabel) yLabel.textContent = type === 'pie' ? '값 컬럼' : 'Y축 컬럼';
@@ -8259,38 +8270,60 @@ function renderColumnVisibilityDropdown() {
                         plugins: [pieLabelPlugin]
                     });
                 } else {
-                    var xRawVals = xColInfo ? getColValues(rows, xColInfo) : null;
+                    var useBinModeBar = document.getElementById('viz-barline-use-bins') && document.getElementById('viz-barline-use-bins').checked;
+                    var actualChartType = (document.getElementById('viz-use-line') && document.getElementById('viz-use-line').checked) ? 'line' : 'bar';
                     var yRawValsBar = getColValues(rows, yColInfo);
-                    if (useGroup && xVal !== '__rowindex__') {
-                        var groupMap = {}, groupCount = {};
-                        rows.forEach(function(row, ri) {
-                            var xv = xColInfo ? (xRawVals[ri] !== null && xRawVals[ri] !== undefined ? xRawVals[ri] : '(없음)') : '(없음)';
-                            xv = String(xv);
-                            var rawY = yRawValsBar[ri];
-                            var yv = (rawY === null || rawY === undefined || rawY === '') ? null
-                                : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
-                            if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
-                            if (!groupMap[xv]) { groupMap[xv] = 0; groupCount[xv] = 0; }
-                            groupMap[xv] += yv;
-                            groupCount[xv]++;
+
+                    if (useBinModeBar) {
+                        // 구간 모드: Y컬럼 값을 구간으로 나누고 X=구간레이블, Y=집계
+                        readVizBins();
+                        if (_vizBins.length === 0) { showToast('구간을 설정해주세요. (자동구간 버튼 활용)'); return; }
+                        var binStatsBar = _vizBins.map(function() { return { count: 0, sum: 0 }; });
+                        yRawValsBar.forEach(function(rawV) {
+                            var v = (rawV === null || rawV === undefined || rawV === '') ? null
+                                : typeof rawV === 'number' ? rawV : parseFloat(String(rawV).replace(/,/g,''));
+                            if (v === null || isNaN(v)) { if (prepMethod === 'zero') v = 0; else if (prepMethod === 'mean') v = yMean; else return; }
+                            _vizBins.forEach(function(bin, bi) {
+                                if (v >= bin.from && v < bin.to) { binStatsBar[bi].count++; binStatsBar[bi].sum += v; }
+                            });
                         });
-                        labels = Object.keys(groupMap);
-                        if (aggMethod === 'sum') data = labels.map(function(k) { return groupMap[k]; });
-                        else if (aggMethod === 'avg') data = labels.map(function(k) { return groupCount[k] ? groupMap[k] / groupCount[k] : 0; });
-                        else data = labels.map(function(k) { return groupCount[k]; });
+                        labels = _vizBins.map(function(bin) { return bin.label || (bin.from.toLocaleString() + ' ~ ' + bin.to.toLocaleString()); });
+                        if (aggMethod === 'avg') data = binStatsBar.map(function(s) { return s.count ? s.sum / s.count : 0; });
+                        else if (aggMethod === 'sum') data = binStatsBar.map(function(s) { return s.sum; });
+                        else data = binStatsBar.map(function(s) { return s.count; });
                     } else {
-                        rows.forEach(function(row, ri) {
-                            var xv = xVal === '__rowindex__' ? (ri + 1) : (xRawVals ? xRawVals[ri] : '');
-                            var rawY = yRawValsBar[ri];
-                            var yv = (rawY === null || rawY === undefined || rawY === '') ? null
-                                : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
-                            if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
-                            labels.push(String(xv !== null && xv !== undefined ? xv : ''));
-                            data.push(yv);
-                        });
+                        var xRawVals = xColInfo ? getColValues(rows, xColInfo) : null;
+                        if (useGroup && xVal !== '__rowindex__') {
+                            var groupMap = {}, groupCount = {};
+                            rows.forEach(function(row, ri) {
+                                var xv = xColInfo ? (xRawVals[ri] !== null && xRawVals[ri] !== undefined ? xRawVals[ri] : '(없음)') : '(없음)';
+                                xv = String(xv);
+                                var rawY = yRawValsBar[ri];
+                                var yv = (rawY === null || rawY === undefined || rawY === '') ? null
+                                    : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
+                                if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
+                                if (!groupMap[xv]) { groupMap[xv] = 0; groupCount[xv] = 0; }
+                                groupMap[xv] += yv;
+                                groupCount[xv]++;
+                            });
+                            labels = Object.keys(groupMap);
+                            if (aggMethod === 'sum') data = labels.map(function(k) { return groupMap[k]; });
+                            else if (aggMethod === 'avg') data = labels.map(function(k) { return groupCount[k] ? groupMap[k] / groupCount[k] : 0; });
+                            else data = labels.map(function(k) { return groupCount[k]; });
+                        } else {
+                            rows.forEach(function(row, ri) {
+                                var xv = xVal === '__rowindex__' ? (ri + 1) : (xRawVals ? xRawVals[ri] : '');
+                                var rawY = yRawValsBar[ri];
+                                var yv = (rawY === null || rawY === undefined || rawY === '') ? null
+                                    : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
+                                if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
+                                labels.push(String(xv !== null && xv !== undefined ? xv : ''));
+                                data.push(yv);
+                            });
+                        }
                     }
                     _vizChart = new Chart(ctx, {
-                        type: _vizChartType === 'bar' ? 'bar' : 'line',
+                        type: actualChartType,
                         data: {
                             labels: labels,
                             datasets: [{
@@ -8314,9 +8347,12 @@ function renderColumnVisibilityDropdown() {
                 var yColName = yColInfo ? yColInfo.name : '';
                 var titleEl = document.getElementById('viz-chart-title');
                 if (titleEl) {
+                    var useBinModeTitle = _vizChartType === 'barline' && document.getElementById('viz-barline-use-bins') && document.getElementById('viz-barline-use-bins').checked;
                     titleEl.textContent = _vizChartType === 'pie'
                         ? (yColName + ' 분포')
-                        : ((xVal === '__rowindex__' ? '행번호' : ((_vizDetectedCols.find(function(c){return c.index===parseInt(xVal);}) || {name:''}).name)) + ' vs ' + yColName);
+                        : useBinModeTitle
+                            ? (yColName + ' 구간별 분포')
+                            : ((xVal === '__rowindex__' ? '행번호' : ((_vizDetectedCols.find(function(c){return c.index===parseInt(xVal);}) || {name:''}).name)) + ' vs ' + yColName);
                 }
             }
 
@@ -8329,7 +8365,10 @@ function renderColumnVisibilityDropdown() {
                         if (wrap) wrap.style.display = this.value === 'group' ? '' : 'none';
                     };
                 });
-                setVizChartType('bar');
+                // 구간 모드 체크박스 → 패널 갱신
+                var binModeChk = document.getElementById('viz-barline-use-bins');
+                if (binModeChk) binModeChk.onchange = function() { setVizChartType('barline'); };
+                setVizChartType('barline');
             })();
 
         }); // END of DOMContentLoaded
