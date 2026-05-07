@@ -5,7 +5,12 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.0.4  (2026-05-07) [최신]
+  v2.2.1.0  (2026-05-07) [최신]
+    - [추가] 자동구간: 전략 선택 (자동/로그/균등/나이 10세/5세) + 분할 수 설정
+    - [추가] 금액형 컬럼 자동 감지 → 로그 단위 구간 추천
+    - [추가] 주민번호 자동 감지 → 파생 나이 컬럼 생성 (차트 축으로 사용 가능)
+
+  v2.2.0.4  (2026-05-07)
     - [추가] 파이 차트 슬라이스 레이블 옵션 (퍼센트/건수/합계금액/레이블명)
     - [추가] 툴팁에 퍼센트/건수/합계 항상 표시
 
@@ -115,7 +120,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.0.4</title>
+    <title>체납대장 분석 워크스테이션 v2.2.1.0</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -678,7 +683,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.0.4</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.1.0</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -925,9 +930,17 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                   </div>
                   <!-- 파이 구간 설정 -->
                   <div id="viz-bins-section" style="display:none;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;">구간 설정</p>
-                      <button onclick="vizAutoSuggestBins()" style="font-size:9px;padding:2px 7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;">자동구간</button>
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">구간 설정</p>
+                    <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;">
+                      <select id="viz-bin-strategy" style="flex:1;font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;background:#fff;">
+                        <option value="auto">자동 (4분위)</option>
+                        <option value="log">로그 단위 (금액형)</option>
+                        <option value="equal">균등 분할</option>
+                        <option value="age10">나이 10세 구간</option>
+                        <option value="age5">나이 5세 구간</option>
+                      </select>
+                      <input type="number" id="viz-bin-count" min="2" max="30" value="4" title="분할 수" style="width:42px;font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;text-align:center;">
+                      <button onclick="vizAutoSuggestBins()" style="font-size:9px;padding:2px 8px;background:#6366f1;color:#fff;border:none;border-radius:5px;cursor:pointer;white-space:nowrap;">자동구간</button>
                     </div>
                     <div id="viz-bins-list" style="display:flex;flex-direction:column;gap:4px;"></div>
                     <button onclick="vizAddBin()" style="margin-top:4px;width:100%;font-size:10px;padding:3px;border:1px dashed #cbd5e1;border-radius:6px;color:#94a3b8;background:transparent;cursor:pointer;">+ 구간 추가</button>
@@ -1312,6 +1325,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.1.0</strong>: 자동구간 전략 (로그/균등/나이), 주민번호→나이 파생 컬럼</p>
                                 <p><strong class="theme-text">v2.2.0.4</strong>: 파이 슬라이스 레이블 옵션 (퍼센트/건수/합계금액)</p>
                                 <p><strong class="theme-text">v2.2.0.3</strong>: 그래프 생성 오류 진단, 파이 구간 한국어 숫자 병기</p>
                                 <p><strong class="theme-text">v2.2.0.2</strong>: 시각화 패널 우측 드로어 전환, 구간 UI 수정, 차트 높이 버그 수정</p>
@@ -7676,36 +7690,66 @@ function renderColumnVisibilityDropdown() {
                 var headers = sheet[0];
                 var rows = sheet.slice(1);
                 _vizDetectedCols = [];
+                var juminCols = [];
                 headers.forEach(function(h, ci) {
-                    var total = 0, numCount = 0, emptyCount = 0, textCount = 0;
+                    var total = 0, numCount = 0, emptyCount = 0, textCount = 0, juminCount = 0;
                     rows.forEach(function(row) {
                         var v = row[ci];
                         total++;
                         if (v === null || v === undefined || v === '') { emptyCount++; return; }
+                        if (isJuminPattern(v)) juminCount++;
                         var n = parseFloat(String(v).replace(/,/g, ''));
                         if (!isNaN(n)) { numCount++; } else { textCount++; }
                     });
                     var numRatio = total > 0 ? numCount / total : 0;
+                    var isJumin = juminCount > 0 && juminCount / Math.max(1, total - emptyCount) >= 0.5;
+                    var colName = h || ('열' + (ci + 1));
+                    var isMoney = isMoneyColName(colName);
                     _vizDetectedCols.push({
-                        name: h || ('열' + (ci + 1)),
+                        name: colName,
                         index: ci,
                         total: total,
                         numCount: numCount,
                         emptyCount: emptyCount,
                         textCount: textCount,
-                        type: numRatio >= 0.5 ? 'numeric' : 'string'
+                        type: numRatio >= 0.5 ? 'numeric' : 'string',
+                        isMoney: isMoney,
+                        isJumin: isJumin
+                    });
+                    if (isJumin) juminCols.push(ci);
+                });
+                // 주민번호 컬럼에서 파생 나이 컬럼 추가
+                juminCols.forEach(function(ci) {
+                    var srcCol = _vizDetectedCols.find(function(c){ return c.index === ci; });
+                    var ages = rows.map(function(r){ return ageFromJumin(r[ci]); }).filter(function(a){ return a !== null; });
+                    _vizDetectedCols.push({
+                        name: '나이 (' + (srcCol ? srcCol.name : '주민번호') + ')',
+                        index: -1,
+                        sourceIndex: ci,
+                        derivedType: 'age',
+                        total: rows.length,
+                        numCount: ages.length,
+                        emptyCount: rows.length - ages.length,
+                        textCount: 0,
+                        type: 'numeric',
+                        isMoney: false,
+                        isJumin: false
                     });
                 });
                 var numCols = _vizDetectedCols.filter(function(c) { return c.type === 'numeric'; });
+                var juminNote = juminCols.length ? ' (주민번호→나이 파생 ' + juminCols.length + '개)' : '';
                 var info = document.getElementById('viz-col-detect-info');
-                if (info) info.textContent = '숫자형 ' + numCols.length + '개 / 전체 ' + _vizDetectedCols.length + '개 컬럼 감지됨';
+                if (info) info.textContent = '숫자형 ' + numCols.length + '개 / 전체 ' + headers.length + '개 컬럼' + juminNote;
+
+                // Y축 셀렉트 (파생 컬럼은 특수 value 사용)
                 var yCol = document.getElementById('viz-y-col');
                 if (yCol) {
                     yCol.innerHTML = '';
-                    _vizDetectedCols.forEach(function(c) {
+                    _vizDetectedCols.forEach(function(c, idx) {
                         var opt = document.createElement('option');
-                        opt.value = c.index;
-                        opt.textContent = c.name + (c.type === 'numeric' ? ' ★' : '');
+                        opt.value = c.derivedType ? ('derived_' + idx) : c.index;
+                        var tag = c.derivedType === 'age' ? ' 🎂' : c.isMoney ? ' 💰★' : c.type === 'numeric' ? ' ★' : '';
+                        opt.textContent = c.name + tag;
                         yCol.appendChild(opt);
                     });
                     yCol.onchange = function() { updateVizYStats(); };
@@ -7714,9 +7758,9 @@ function renderColumnVisibilityDropdown() {
                 var xCol = document.getElementById('viz-x-col');
                 if (xCol) {
                     xCol.innerHTML = '<option value="__rowindex__">행 번호</option>';
-                    _vizDetectedCols.forEach(function(c) {
+                    _vizDetectedCols.forEach(function(c, idx) {
                         var opt = document.createElement('option');
-                        opt.value = c.index;
+                        opt.value = c.derivedType ? ('derived_' + idx) : c.index;
                         opt.textContent = c.name;
                         xCol.appendChild(opt);
                     });
@@ -7726,11 +7770,35 @@ function renderColumnVisibilityDropdown() {
             function updateVizYStats() {
                 var yCol = document.getElementById('viz-y-col');
                 if (!yCol || !_vizDetectedCols.length) return;
-                var ci = parseInt(yCol.value);
-                var col = _vizDetectedCols.find(function(c) { return c.index === ci; });
+                var col = getSelectedColInfo(yCol.value);
                 if (!col) return;
                 var stats = document.getElementById('viz-y-stats');
-                if (stats) stats.textContent = '숫자 ' + col.numCount + ' / 결측 ' + col.emptyCount + ' / 문자 ' + col.textCount;
+                var extra = col.isMoney ? ' 💰' : col.derivedType === 'age' ? ' 🎂나이형' : '';
+                if (stats) stats.textContent = '숫자 ' + col.numCount + ' / 결측 ' + col.emptyCount + ' / 문자 ' + col.textCount + extra;
+                // 전략 자동 추천
+                var stratEl = document.getElementById('viz-bin-strategy');
+                if (stratEl) {
+                    if (col.derivedType === 'age') stratEl.value = 'age10';
+                    else if (col.isMoney) stratEl.value = 'log';
+                    else stratEl.value = 'auto';
+                }
+            }
+
+            function getSelectedColInfo(selectValue) {
+                if (!selectValue) return null;
+                if (String(selectValue).startsWith('derived_')) {
+                    var idx = parseInt(selectValue.replace('derived_', ''));
+                    return _vizDetectedCols[idx] || null;
+                }
+                var ci = parseInt(selectValue);
+                return _vizDetectedCols.find(function(c) { return c.index === ci && !c.derivedType; }) || null;
+            }
+
+            function getColValues(rows, colInfo) {
+                return rows.map(function(row) {
+                    if (colInfo.derivedType === 'age') return ageFromJumin(row[colInfo.sourceIndex]);
+                    return row[colInfo.index];
+                });
             }
 
             function getVizRows() {
@@ -7770,24 +7838,118 @@ function renderColumnVisibilityDropdown() {
             }
 
             window.vizAutoSuggestBins = function vizAutoSuggestBins() {
-                var yCol = document.getElementById('viz-y-col');
-                if (!yCol) return;
-                var ci = parseInt(yCol.value);
+                var yColEl = document.getElementById('viz-y-col');
+                if (!yColEl) return;
+                var colInfo = getSelectedColInfo(yColEl.value);
+                if (!colInfo) return;
                 var rows = getVizRows();
-                var vals = rows.map(function(r) { return parseFloat(String(r[ci] || '').replace(/,/g, '')); }).filter(function(v) { return !isNaN(v); });
+                var rawVals = getColValues(rows, colInfo);
+                var vals = rawVals.map(function(v) {
+                    if (v === null || v === undefined || v === '') return NaN;
+                    return typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+                }).filter(function(v) { return !isNaN(v); });
                 if (!vals.length) { showToast('데이터가 없습니다.'); return; }
                 vals.sort(function(a, b) { return a - b; });
                 var min = vals[0], max = vals[vals.length - 1];
-                var q1 = vals[Math.floor(vals.length * 0.25)];
-                var q2 = vals[Math.floor(vals.length * 0.5)];
-                var q3 = vals[Math.floor(vals.length * 0.75)];
-                _vizBins = [
-                    { from: min, to: q1, label: '' },
-                    { from: q1, to: q2, label: '' },
-                    { from: q2, to: q3, label: '' },
-                    { from: q3, to: max + 1, label: '' }
-                ];
+                var stratEl = document.getElementById('viz-bin-strategy');
+                var strategy = stratEl ? stratEl.value : 'auto';
+                var nEl = document.getElementById('viz-bin-count');
+                var n = nEl ? Math.max(2, Math.min(20, parseInt(nEl.value) || 4)) : 4;
+
+                if (strategy === 'log' || (strategy === 'auto' && colInfo.isMoney)) {
+                    _vizBins = logMoneyBins(min, max, n);
+                } else if (strategy === 'age10' || (strategy === 'auto' && colInfo.derivedType === 'age')) {
+                    var ageMin = Math.floor(Math.max(0, min) / 10) * 10;
+                    var ageMax = Math.ceil(max / 10) * 10;
+                    _vizBins = [];
+                    for (var a = ageMin; a < ageMax; a += 10) {
+                        _vizBins.push({ from: a, to: a + 10, label: a + '~' + (a+10) + '세' });
+                    }
+                } else if (strategy === 'age5') {
+                    var ageMin5 = Math.floor(Math.max(0, min) / 5) * 5;
+                    var ageMax5 = Math.ceil(max / 5) * 5;
+                    _vizBins = [];
+                    for (var a5 = ageMin5; a5 < ageMax5; a5 += 5) {
+                        _vizBins.push({ from: a5, to: a5 + 5, label: a5 + '~' + (a5+5) + '세' });
+                    }
+                } else if (strategy === 'equal') {
+                    var step = (max - min) / n;
+                    _vizBins = [];
+                    for (var i = 0; i < n; i++) {
+                        var from = Math.round(min + step * i);
+                        var to   = i === n - 1 ? max + 1 : Math.round(min + step * (i + 1));
+                        _vizBins.push({ from: from, to: to, label: '' });
+                    }
+                } else {
+                    // auto: 4분위 또는 n분위
+                    _vizBins = [];
+                    for (var q = 0; q < n; q++) {
+                        var fromQ = vals[Math.floor(vals.length * q / n)];
+                        var toQ   = q === n - 1 ? max + 1 : vals[Math.floor(vals.length * (q + 1) / n)];
+                        if (_vizBins.length && _vizBins[_vizBins.length-1].to === fromQ) {
+                            _vizBins[_vizBins.length-1].to = toQ; // 중복 엣지 병합
+                        } else {
+                            _vizBins.push({ from: fromQ, to: toQ, label: '' });
+                        }
+                    }
+                }
+                if (!_vizBins.length) _vizBins = [{ from: min, to: max + 1, label: '' }];
                 renderVizBins();
+            }
+
+            // ── 주민번호에서 나이 추출 ──
+            function ageFromJumin(val) {
+                if (val === null || val === undefined || val === '') return null;
+                var s = String(val).replace(/[^0-9]/g, '');
+                if (s.length < 7) return null;
+                var yy = parseInt(s.slice(0, 2), 10);
+                var mm = parseInt(s.slice(2, 4), 10);
+                var dd = parseInt(s.slice(4, 6), 10);
+                var g  = parseInt(s[6], 10);
+                var century = (g === 9 || g === 0) ? 1800 : (g === 3 || g === 4 || g === 7 || g === 8) ? 2000 : 1900;
+                var birthYear = century + yy;
+                var today = new Date();
+                var age = today.getFullYear() - birthYear;
+                var thisMM = today.getMonth() + 1;
+                var thisDD = today.getDate();
+                if (mm > thisMM || (mm === thisMM && dd > thisDD)) age--;
+                return (age >= 0 && age < 150) ? age : null;
+            }
+
+            function isJuminPattern(v) {
+                var s = String(v || '').replace(/[^0-9]/g, '');
+                if (s.length !== 13) return false;
+                var g = parseInt(s[6], 10);
+                return g >= 1 && g <= 9;
+            }
+
+            function isMoneyColName(name) {
+                return /금액|체납|납부|부과|세액|과태|부담금|요금|임료|보증|매출|매입|합계|총액|잔액|수입|지출|이자|수수료|대금|채권|고지|부과|부가|가격|단가|비용|원$/.test(name || '');
+            }
+
+            // ── 로그 금액 자동구간 ──
+            var _MONEY_EDGES = [0,10000,50000,100000,500000,1000000,3000000,5000000,10000000,30000000,50000000,100000000,500000000,1000000000,10000000000];
+            function logMoneyBins(min, max, n) {
+                var edges = _MONEY_EDGES.filter(function(e) { return e >= Math.max(0, min) && e <= max; });
+                if (edges.length === 0) edges = [0];
+                if (edges[0] > min) edges.unshift(Math.max(0, min));
+                if (edges[edges.length-1] < max) edges.push(max + 1);
+                // 분할 수 n에 맞게 간소화
+                while (edges.length - 1 > n && edges.length > 2) {
+                    var idx = Math.floor(edges.length / 2);
+                    edges.splice(idx, 1);
+                }
+                var bins = [];
+                for (var i = 0; i < edges.length - 1; i++) {
+                    bins.push({ from: edges[i], to: edges[i+1], label: '' });
+                }
+                return bins;
+            }
+
+            // ── 파생 컬럼 값 추출 (나이 등) ──
+            function getDerivedColValue(row, colInfo) {
+                if (colInfo.derivedType === 'age') return ageFromJumin(row[colInfo.sourceIndex]);
+                return row[colInfo.index];
             }
 
             function toKorNum(n) {
@@ -7883,15 +8045,19 @@ function renderColumnVisibilityDropdown() {
 
                 if (!yColEl || yColEl.options.length === 0) { showToast('컬럼을 먼저 감지해주세요.'); return; }
 
-                var yCi = parseInt(yColEl.value);
+                var yColInfo = getSelectedColInfo(yColEl.value);
+                if (!yColInfo) { showToast('컬럼 정보를 찾을 수 없습니다.'); return; }
                 var xVal = xColEl ? xColEl.value : '__rowindex__';
+                var xColInfo = (xVal && xVal !== '__rowindex__') ? getSelectedColInfo(xVal) : null;
                 var prepMethod = prepEl ? prepEl.value : 'skip';
                 var useGroup = aggRadio && aggRadio.value === 'group';
                 var aggMethod = aggMethodEl ? aggMethodEl.value : 'sum';
 
-                var yColInfo = _vizDetectedCols.find(function(c) { return c.index === yCi; });
-
-                var yValsRaw = rows.map(function(r) { return parseFloat(String(r[yCi] || '').replace(/,/g, '')); }).filter(function(v) { return !isNaN(v); });
+                var yRawVals = getColValues(rows, yColInfo).map(function(v) {
+                    if (v === null || v === undefined || v === '') return NaN;
+                    return typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g, ''));
+                });
+                var yValsRaw = yRawVals.filter(function(v) { return !isNaN(v); });
                 var yMean = yValsRaw.length ? yValsRaw.reduce(function(a, b) { return a + b; }, 0) / yValsRaw.length : 0;
 
                 document.getElementById('viz-empty-msg').style.display = 'none';
@@ -7906,11 +8072,12 @@ function renderColumnVisibilityDropdown() {
                     var pieSums = []; // 합계금액 추적용
                     if (yColInfo && yColInfo.type === 'string') {
                         var catMap = {}, catSum = {};
-                        rows.forEach(function(row) {
-                            var v = row[yCi];
+                        var yRawForCat = getColValues(rows, yColInfo);
+                        yRawForCat.forEach(function(v) {
                             if (v === null || v === undefined || v === '') v = '(없음)';
+                            v = String(v);
                             catMap[v] = (catMap[v] || 0) + 1;
-                            var n = parseFloat(String(v).replace(/,/g,''));
+                            var n = parseFloat(v.replace(/,/g,''));
                             catSum[v] = (catSum[v] || 0) + (isNaN(n) ? 0 : n);
                         });
                         labels = Object.keys(catMap);
@@ -7919,9 +8086,11 @@ function renderColumnVisibilityDropdown() {
                     } else {
                         if (_vizBins.length === 0) { showToast('구간을 설정해주세요. (자동구간 버튼 활용)'); return; }
                         var binStats = _vizBins.map(function() { return { count: 0, sum: 0 }; });
-                        rows.forEach(function(row) {
-                            var v = preprocessVal(row[yCi], prepMethod, yMean);
-                            if (v === null) return;
+                        var yRawForBin = getColValues(rows, yColInfo);
+                        yRawForBin.forEach(function(rawV) {
+                            var v = (rawV === null || rawV === undefined || rawV === '') ? null
+                                : typeof rawV === 'number' ? rawV : parseFloat(String(rawV).replace(/,/g,''));
+                            if (v === null || isNaN(v)) { if (prepMethod === 'zero') v = 0; else if (prepMethod === 'mean') v = yMean; else return; }
                             _vizBins.forEach(function(bin, bi) {
                                 if (v >= bin.from && v < bin.to) { binStats[bi].count++; binStats[bi].sum += v; }
                             });
@@ -8025,15 +8194,17 @@ function renderColumnVisibilityDropdown() {
                         plugins: [pieLabelPlugin]
                     });
                 } else {
+                    var xRawVals = xColInfo ? getColValues(rows, xColInfo) : null;
+                    var yRawValsBar = getColValues(rows, yColInfo);
                     if (useGroup && xVal !== '__rowindex__') {
-                        var xCi = parseInt(xVal);
                         var groupMap = {}, groupCount = {};
-                        rows.forEach(function(row) {
-                            var xv = row[xCi];
-                            if (xv === null || xv === undefined) xv = '(없음)';
+                        rows.forEach(function(row, ri) {
+                            var xv = xColInfo ? (xRawVals[ri] !== null && xRawVals[ri] !== undefined ? xRawVals[ri] : '(없음)') : '(없음)';
                             xv = String(xv);
-                            var yv = preprocessVal(row[yCi], prepMethod, yMean);
-                            if (yv === null) return;
+                            var rawY = yRawValsBar[ri];
+                            var yv = (rawY === null || rawY === undefined || rawY === '') ? null
+                                : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
+                            if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
                             if (!groupMap[xv]) { groupMap[xv] = 0; groupCount[xv] = 0; }
                             groupMap[xv] += yv;
                             groupCount[xv]++;
@@ -8044,9 +8215,11 @@ function renderColumnVisibilityDropdown() {
                         else data = labels.map(function(k) { return groupCount[k]; });
                     } else {
                         rows.forEach(function(row, ri) {
-                            var xv = xVal === '__rowindex__' ? (ri + 1) : row[parseInt(xVal)];
-                            var yv = preprocessVal(row[yCi], prepMethod, yMean);
-                            if (yv === null) return;
+                            var xv = xVal === '__rowindex__' ? (ri + 1) : (xRawVals ? xRawVals[ri] : '');
+                            var rawY = yRawValsBar[ri];
+                            var yv = (rawY === null || rawY === undefined || rawY === '') ? null
+                                : typeof rawY === 'number' ? rawY : parseFloat(String(rawY).replace(/,/g,''));
+                            if (yv === null || isNaN(yv)) { if (prepMethod === 'zero') yv = 0; else if (prepMethod === 'mean') yv = yMean; else return; }
                             labels.push(String(xv !== null && xv !== undefined ? xv : ''));
                             data.push(yv);
                         });
