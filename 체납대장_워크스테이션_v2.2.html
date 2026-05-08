@@ -5,7 +5,11 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.5.1  (2026-05-08) [최신]
+  v2.2.5.2  (2026-05-08) [최신]
+    - [추가] 테이블 셀 스타일 직접 커스텀: 홀수/짝수 행 색상·불투명도, 헤더 배경/글자색, 셀 글자색, 테두리색, 선택행색
+    - [추가] 테이블 워터마크 이미지: 이미지를 테이블 셀 내부에 직접 배치 (불투명도 조절 가능)
+
+  v2.2.5.1  (2026-05-08)
     - [추가] 탭바·툴바 패널 테마 지원 (편집 영역 선택에 탭바/툴바 추가)
     - [수정] 테이블 테마: 배경이 실제 셀 안에 반영되도록 row 반투명 CSS 주입
 
@@ -173,7 +177,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.5.1</title>
+    <title>체납대장 분석 워크스테이션 v2.2.5.2</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -736,7 +740,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.1</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.2</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1395,6 +1399,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.5.2</strong>: 테이블 셀 스타일 직접 커스텀 (행 색상·헤더·테두리·글자색), 워터마크 이미지 (셀 내부)</p>
                                 <p><strong class="theme-text">v2.2.5.1</strong>: 탭바·툴바 패널 테마 추가, 테이블 테마가 실제 셀 안에 반영</p>
                                 <p><strong class="theme-text">v2.2.5.0</strong>: 테마 프리셋 시스템 — 이름 지정 저장/적용/삭제, .json 파일 공유</p>
                                 <p><strong class="theme-text">v2.2.4.1</strong>: 테마 저장 오류 수정, 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 독립 설정)</p>
@@ -1565,6 +1570,88 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
   </div>
 
   <div style="border-top:1px solid #f1f5f9;"></div>
+
+  <!-- 테이블 셀 스타일 (테이블 패널 선택 시에만 표시) -->
+  <div id="thp-table-cell-section" style="display:none;">
+
+    <!-- 행 배경색 -->
+    <div>
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">행 배경색</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:8px;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;width:30px;">홀수</label>
+          <input type="color" id="thp-ts-odd-bg" value="#ffffff" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+          <input type="range" id="thp-ts-odd-op" min="0" max="100" value="100" oninput="themeApplyTableCell()" style="flex:1;">
+          <span id="thp-ts-odd-op-val" style="font-size:10px;color:#94a3b8;width:32px;">100%</span>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;width:30px;">짝수</label>
+          <input type="color" id="thp-ts-even-bg" value="#f8fafc" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+          <input type="range" id="thp-ts-even-op" min="0" max="100" value="100" oninput="themeApplyTableCell()" style="flex:1;">
+          <span id="thp-ts-even-op-val" style="font-size:10px;color:#94a3b8;width:32px;">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 헤더 스타일 -->
+    <div>
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">헤더 스타일</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;">배경색</label>
+          <input type="color" id="thp-ts-hdr-bg" value="#f1f5f9" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;">글자색</label>
+          <input type="color" id="thp-ts-hdr-text" value="#334155" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 셀 스타일 -->
+    <div>
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">셀 스타일</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;">글자색</label>
+          <input type="color" id="thp-ts-cell-text" value="#1e293b" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;">테두리</label>
+          <input type="color" id="thp-ts-border" value="#e2e8f0" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#64748b;">선택행</label>
+          <input type="color" id="thp-ts-selected" value="#dbeafe" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- 워터마크 이미지 -->
+    <div>
+      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">워터마크 이미지 (셀 내부)</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:8px;">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+          <button onclick="document.getElementById('thp-wm-input').click()" style="padding:5px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;font-weight:700;color:#475569;cursor:pointer;">📁 이미지 선택</button>
+          <button id="thp-wm-remove" onclick="themeRemoveWatermark()" style="display:none;padding:5px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;color:#dc2626;cursor:pointer;">✕ 제거</button>
+        </div>
+        <input type="file" id="thp-wm-input" accept="image/*" style="display:none;" onchange="themeWatermarkUpload(this)">
+        <div id="thp-wm-controls" style="display:none;">
+          <img id="thp-wm-preview" style="width:100%;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:6px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <label style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap;">불투명도</label>
+            <input type="range" id="thp-wm-opacity" min="5" max="95" value="30" oninput="themeApplyTableCell()" style="flex:1;">
+            <span id="thp-wm-opacity-val" style="font-size:10px;color:#94a3b8;width:28px;">30%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="themeResetTableCell()" style="width:100%;padding:7px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;">↺ 테이블 셀 스타일 초기화</button>
+
+    <div style="border-top:1px solid #f1f5f9;margin-top:4px;"></div>
+    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider" style="margin-bottom:8px;">아래: 테이블 패널 배경 (이미지/패턴)</div>
+  </div>
 
   <!-- 테마 프리셋 -->
   <div>
@@ -8632,12 +8719,23 @@ function renderColumnVisibilityDropdown() {
                      imageSize: 'cover', imageWhiten: 70 };
         }
 
+        function _tableCellStyleDefault() {
+            return {
+                oddRowBg: '#ffffff', oddRowOpacity: 100,
+                evenRowBg: '#f8fafc', evenRowOpacity: 100,
+                headerBg: '#f1f5f9', headerText: '#334155',
+                cellText: '#1e293b', borderColor: '#e2e8f0',
+                selectedBg: '#dbeafe',
+                watermarkUrl: null, watermarkOpacity: 30
+            };
+        }
+
         var _panelThemes = {
             sidebar:  _themeDefaultPanel(),
             header:   _themeDefaultPanel(),
             tabs:     _themeDefaultPanel(),
             toolbar:  _themeDefaultPanel(),
-            table:    _themeDefaultPanel(),
+            table:    Object.assign(_themeDefaultPanel(), { cellStyle: _tableCellStyleDefault() }),
             body:     _themeDefaultPanel()
         };
 
@@ -8732,21 +8830,55 @@ function renderColumnVisibilityDropdown() {
                 if (css.backgroundImage) _themeApplyToEl(el, css);
                 else _themeClearEl(el);
             });
-            // 테이블 패널 활성 시 tabulator 행을 반투명하게 만들어 배경이 보이도록
+            _themeRenderTableCell();
+        }
+
+        function _themeRenderTableCell() {
             var tp = _panelThemes.table;
-            var hasTableTheme = tp.pattern !== 'none' || !!tp.imageDataUrl;
+            if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
+            var ts = tp.cellStyle;
+            var hasTableBg = tp.pattern !== 'none' || !!tp.imageDataUrl;
+
+            // 행 불투명도: 배경 있을 때 기본값(100%)이면 반투명 유지
+            var oddOp  = ts.oddRowOpacity  === 100 && hasTableBg ? 0.82 : ts.oddRowOpacity  / 100;
+            var evenOp = ts.evenRowOpacity === 100 && hasTableBg ? 0.65 : ts.evenRowOpacity / 100;
+            var hdrOp  = hasTableBg ? 0.80 : 1;
+
+            var oddBg    = _themeHex2rgba(ts.oddRowBg,  oddOp);
+            var evenBg   = _themeHex2rgba(ts.evenRowBg, evenOp);
+            var headerBg = _themeHex2rgba(ts.headerBg,  hdrOp);
+
+            // cellStyle가 모두 기본값이고 배경도 없으면 CSS 제거
+            var def = _tableCellStyleDefault();
+            var isDefault = !hasTableBg && !ts.watermarkUrl &&
+                ts.oddRowBg === def.oddRowBg && ts.oddRowOpacity === def.oddRowOpacity &&
+                ts.evenRowBg === def.evenRowBg && ts.evenRowOpacity === def.evenRowOpacity &&
+                ts.headerBg === def.headerBg && ts.headerText === def.headerText &&
+                ts.cellText === def.cellText && ts.borderColor === def.borderColor &&
+                ts.selectedBg === def.selectedBg;
+
             var sEl = document.getElementById('theme-table-rows-css');
-            if (hasTableTheme) {
-                if (!sEl) { sEl = document.createElement('style'); sEl.id = 'theme-table-rows-css'; document.head.appendChild(sEl); }
-                sEl.textContent =
-                    '#main-content .tabulator-row{background-color:rgba(255,255,255,0.82)!important}' +
-                    '#main-content .tabulator-row.tabulator-row-even{background-color:rgba(255,255,255,0.65)!important}' +
-                    '#main-content .tabulator .tabulator-header{background-color:rgba(235,235,235,0.80)!important}' +
-                    '#main-content .tabulator .tabulator-col{background:rgba(235,235,235,0.80)!important}' +
-                    '#main-content .tabulator-row.tabulator-selected{background-color:rgba(154,188,234,0.75)!important}';
+            if (isDefault) { if (sEl) sEl.remove(); return; }
+            if (!sEl) { sEl = document.createElement('style'); sEl.id = 'theme-table-rows-css'; document.head.appendChild(sEl); }
+
+            var wmCss = '';
+            if (ts.watermarkUrl) {
+                var wA = (100 - ts.watermarkOpacity) / 100;
+                wmCss = '#main-content .tabulator-tableHolder{' +
+                    'background-image:linear-gradient(rgba(255,255,255,'+wA+'),rgba(255,255,255,'+wA+')),url("'+ts.watermarkUrl+'");' +
+                    'background-size:auto,cover;background-position:center;background-repeat:no-repeat,no-repeat;background-attachment:local,local;}';
             } else {
-                if (sEl) sEl.remove();
+                wmCss = '#main-content .tabulator-tableHolder{background-image:none;}';
             }
+
+            sEl.textContent = wmCss +
+                '#main-content .tabulator-row{background-color:'+oddBg+'!important;color:'+ts.cellText+'!important}' +
+                '#main-content .tabulator-row.tabulator-row-even{background-color:'+evenBg+'!important}' +
+                '#main-content .tabulator .tabulator-header{background-color:'+headerBg+'!important}' +
+                '#main-content .tabulator .tabulator-col{background:'+headerBg+'!important;color:'+ts.headerText+'!important}' +
+                '#main-content .tabulator-col .tabulator-col-content .tabulator-col-title{color:'+ts.headerText+'!important}' +
+                '#main-content .tabulator-cell{border-right-color:'+ts.borderColor+'!important}' +
+                '#main-content .tabulator-row.tabulator-selected{background-color:'+ts.selectedBg+'!important}';
         }
 
         function _themeLoadPanelToUI(p) {
@@ -8778,6 +8910,86 @@ function renderColumnVisibilityDropdown() {
                 btn.style.color       = active ? '#3b82f6' : '#64748b';
             });
             _themeLoadPanelToUI(_panelThemes[_activePanel]);
+            var tcs = document.getElementById('thp-table-cell-section');
+            if (tcs) tcs.style.display = panelId === 'table' ? 'block' : 'none';
+            if (panelId === 'table') _themeLoadTableCellToUI();
+        }
+
+        function _themeLoadTableCellToUI() {
+            var tp = _panelThemes.table;
+            if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
+            var ts = tp.cellStyle;
+            var g = function(id) { return document.getElementById(id); };
+            if (g('thp-ts-odd-bg'))    g('thp-ts-odd-bg').value    = ts.oddRowBg;
+            if (g('thp-ts-odd-op'))    { g('thp-ts-odd-op').value    = ts.oddRowOpacity;  if(g('thp-ts-odd-op-val'))  g('thp-ts-odd-op-val').textContent  = ts.oddRowOpacity+'%'; }
+            if (g('thp-ts-even-bg'))   g('thp-ts-even-bg').value   = ts.evenRowBg;
+            if (g('thp-ts-even-op'))   { g('thp-ts-even-op').value   = ts.evenRowOpacity; if(g('thp-ts-even-op-val')) g('thp-ts-even-op-val').textContent = ts.evenRowOpacity+'%'; }
+            if (g('thp-ts-hdr-bg'))    g('thp-ts-hdr-bg').value    = ts.headerBg;
+            if (g('thp-ts-hdr-text'))  g('thp-ts-hdr-text').value  = ts.headerText;
+            if (g('thp-ts-cell-text')) g('thp-ts-cell-text').value = ts.cellText;
+            if (g('thp-ts-border'))    g('thp-ts-border').value    = ts.borderColor;
+            if (g('thp-ts-selected'))  g('thp-ts-selected').value  = ts.selectedBg;
+            if (g('thp-wm-opacity'))   { g('thp-wm-opacity').value   = ts.watermarkOpacity; if(g('thp-wm-opacity-val')) g('thp-wm-opacity-val').textContent = ts.watermarkOpacity+'%'; }
+            var wmCtrl = g('thp-wm-controls'), wmRemove = g('thp-wm-remove'), wmPrev = g('thp-wm-preview');
+            if (ts.watermarkUrl) {
+                if (wmCtrl)   wmCtrl.style.display   = 'block';
+                if (wmRemove) wmRemove.style.display  = '';
+                if (wmPrev)   wmPrev.src              = ts.watermarkUrl;
+            } else {
+                if (wmCtrl)   wmCtrl.style.display   = 'none';
+                if (wmRemove) wmRemove.style.display  = 'none';
+                if (wmPrev)   wmPrev.src              = '';
+            }
+        }
+
+        function themeApplyTableCell() {
+            var tp = _panelThemes.table;
+            if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
+            var ts = tp.cellStyle;
+            var g = function(id) { return document.getElementById(id); };
+            if (g('thp-ts-odd-bg'))    ts.oddRowBg      = g('thp-ts-odd-bg').value;
+            if (g('thp-ts-odd-op'))    { ts.oddRowOpacity  = parseInt(g('thp-ts-odd-op').value);  if(g('thp-ts-odd-op-val'))  g('thp-ts-odd-op-val').textContent  = ts.oddRowOpacity+'%'; }
+            if (g('thp-ts-even-bg'))   ts.evenRowBg     = g('thp-ts-even-bg').value;
+            if (g('thp-ts-even-op'))   { ts.evenRowOpacity = parseInt(g('thp-ts-even-op').value); if(g('thp-ts-even-op-val')) g('thp-ts-even-op-val').textContent = ts.evenRowOpacity+'%'; }
+            if (g('thp-ts-hdr-bg'))    ts.headerBg      = g('thp-ts-hdr-bg').value;
+            if (g('thp-ts-hdr-text'))  ts.headerText    = g('thp-ts-hdr-text').value;
+            if (g('thp-ts-cell-text')) ts.cellText      = g('thp-ts-cell-text').value;
+            if (g('thp-ts-border'))    ts.borderColor   = g('thp-ts-border').value;
+            if (g('thp-ts-selected'))  ts.selectedBg    = g('thp-ts-selected').value;
+            if (g('thp-wm-opacity'))   { ts.watermarkOpacity = parseInt(g('thp-wm-opacity').value); if(g('thp-wm-opacity-val')) g('thp-wm-opacity-val').textContent = ts.watermarkOpacity+'%'; }
+            _themeRenderTableCell();
+        }
+
+        function themeWatermarkUpload(input) {
+            var file = input.files[0]; if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var ts = _panelThemes.table.cellStyle;
+                ts.watermarkUrl = e.target.result;
+                var g = function(id) { return document.getElementById(id); };
+                if (g('thp-wm-preview'))  g('thp-wm-preview').src          = e.target.result;
+                if (g('thp-wm-controls')) g('thp-wm-controls').style.display = 'block';
+                if (g('thp-wm-remove'))   g('thp-wm-remove').style.display   = '';
+                _themeRenderTableCell();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function themeRemoveWatermark() {
+            var ts = _panelThemes.table.cellStyle; if (!ts) return;
+            ts.watermarkUrl = null;
+            var g = function(id) { return document.getElementById(id); };
+            if (g('thp-wm-preview'))  g('thp-wm-preview').src           = '';
+            if (g('thp-wm-controls')) g('thp-wm-controls').style.display = 'none';
+            if (g('thp-wm-remove'))   g('thp-wm-remove').style.display   = 'none';
+            if (g('thp-wm-input'))    g('thp-wm-input').value            = '';
+            _themeRenderTableCell();
+        }
+
+        function themeResetTableCell() {
+            _panelThemes.table.cellStyle = _tableCellStyleDefault();
+            _themeLoadTableCellToUI();
+            _themeRenderTableCell();
         }
 
         function themeApply() {
@@ -8876,7 +9088,17 @@ function renderColumnVisibilityDropdown() {
             if (!cfg) return;
             if (cfg.panelThemes) {
                 _ALL_PANELS.forEach(function(panel) {
-                    if (cfg.panelThemes[panel]) Object.assign(_panelThemes[panel], cfg.panelThemes[panel]);
+                    if (cfg.panelThemes[panel]) {
+                        var saved = cfg.panelThemes[panel];
+                        // cellStyle는 별도 병합 (table 전용)
+                        if (panel === 'table' && saved.cellStyle) {
+                            Object.assign(_panelThemes.table.cellStyle, saved.cellStyle);
+                            var noCs = Object.assign({}, saved); delete noCs.cellStyle;
+                            Object.assign(_panelThemes[panel], noCs);
+                        } else {
+                            Object.assign(_panelThemes[panel], saved);
+                        }
+                    }
                 });
             } else {
                 // 구 버전(customTheme) 마이그레이션
@@ -8911,6 +9133,16 @@ function renderColumnVisibilityDropdown() {
                     } else {
                         try { await wsDir.removeEntry(fname); } catch(e) {}
                     }
+                }
+                // 테이블 워터마크 이미지 저장
+                var wmUrl = _panelThemes.table.cellStyle && _panelThemes.table.cellStyle.watermarkUrl;
+                if (wmUrl) {
+                    var wmHandle = await wsDir.getFileHandle('theme_table_watermark.dat', { create: true });
+                    var wmWriter = await wmHandle.createWritable();
+                    var wmResp = await fetch(wmUrl); var wmBlob = await wmResp.blob();
+                    await wmWriter.write(wmBlob); await wmWriter.close();
+                } else {
+                    try { await wsDir.removeEntry('theme_table_watermark.dat'); } catch(e) {}
                 }
                 await window._themeSaveCfg();
                 showToast('🎨 테마 설정이 저장되었습니다.');
