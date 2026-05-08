@@ -8754,12 +8754,16 @@ function renderColumnVisibilityDropdown() {
 
         function _themeRender() {
             _ALL_PANELS.forEach(function(panel) {
+                if (panel === 'table') return; // 테이블은 컬러 테마 전용, 배경 패턴 미사용
                 var el = _themeElForPanel(panel);
                 if (!el) return;
                 var css = _themeBuildPanelCSS(_panelThemes[panel]);
                 if (css.backgroundImage) _themeApplyToEl(el, css);
                 else _themeClearEl(el);
             });
+            // 혹시 기존에 적용된 테이블 배경 초기화
+            var tEl = _themeElForPanel('table');
+            if (tEl) _themeClearEl(tEl);
             _themeRenderTableCell();
         }
 
@@ -8781,11 +8785,13 @@ function renderColumnVisibilityDropdown() {
             if (!sEl) { sEl = document.createElement('style'); sEl.id = 'theme-table-rows-css'; document.head.appendChild(sEl); }
 
             // 실제 테이블 구조: #main-table > thead(#thead-row th) / tbody(#tbody-rows tr td)
+            // td:nth-child(n+4) — 1~3번(행번호·체크박스·작업)은 제외하고 데이터 셀만 색 적용
             sEl.textContent =
                 '#main-table thead tr#thead-row th{background-color:'+ts.headerBg+'!important;color:'+ts.headerText+'!important}' +
-                '#tbody-rows tr{background-color:'+ts.oddRowBg+'!important;color:'+ts.cellText+'!important}' +
+                '#tbody-rows tr{background-color:'+ts.oddRowBg+'!important}' +
                 '#tbody-rows tr:nth-child(even){background-color:'+ts.evenRowBg+'!important}' +
-                '#tbody-rows tr td{border-color:'+ts.borderColor+'!important;color:'+ts.cellText+'!important}';
+                '#tbody-rows tr td:nth-child(n+4){color:'+ts.cellText+'!important}' +
+                '#tbody-rows tr td{border-right-color:'+ts.borderColor+'!important}';
         }
 
         function _themeLoadPanelToUI(p) {
