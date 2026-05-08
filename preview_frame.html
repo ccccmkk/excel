@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>체납대장 워크스테이션 - 프레임 미리보기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --theme-color: #3b82f6; }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", Dotum, sans-serif;
+            letter-spacing: -0.02em; 
+            background-color: #f1f5f9; 
+            transition: background-color 0.3s, color 0.3s;
+        }
+        
+        .theme-bg { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
+        .theme-text { color: var(--theme-color) !important; }
+        .theme-border { border-color: var(--theme-color) !important; }
+        .theme-ring:focus { box-shadow: inset 0 0 0 2px var(--theme-color) !important; outline: none; }
+        .theme-check:checked { background-color: var(--theme-color) !important; border-color: var(--theme-color) !important; }
+        .theme-light-bg { background-color: color-mix(in srgb, var(--theme-color) 10%, transparent) !important; }
+
+        #app-preloader {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background-color: #ffffff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 99999; transition: opacity 0.2s ease-out;
+        }
+        .preloader-spinner { 
+            width: 50px; height: 50px; border: 5px solid #f1f5f9; border-top: 5px solid var(--theme-color); 
+            border-radius: 50%; animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .sheet-btn { 
+            transition: all 0.2s ease; border: 1px solid transparent; padding: 0.5rem 1rem; border-radius: 0.5rem; 
+            font-weight: bold; font-size: 0.875rem; background-color: #ffffff; color: #475569; border: 1px solid #e2e8f0; 
+        }
+        .sheet-btn.active { background-color: #1e293b !important; color: white !important; border-color: #1e293b !important; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+        
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        .loader-ring { 
+            border-top-color: var(--theme-color); animation: spin 1s linear infinite; border-width: 4px; 
+            border-style: solid; border-color: #f1f5f9; border-top-color: var(--theme-color); border-radius: 50%; 
+            width: 3rem; height: 3rem; 
+        }
+
+        td[contenteditable="true"] { transition: all 0.15s; outline: none; }
+        td[contenteditable="true"]:focus { 
+            white-space: normal !important; background-color: #ffffff !important; 
+            box-shadow: inset 0 0 0 3px var(--theme-color) !important; z-index: 50; position: relative; 
+        }
+
+        @keyframes pulse-highlight { 0% { background-color: #fef08a; } 100% { background-color: #fff7ed; } }
+        .is-modified { background-color: #fff7ed !important; position: relative; animation: pulse-highlight 0.8s ease-out; }
+        .is-modified::after { 
+            content: ''; position: absolute; top: 0; right: 0; border-style: solid; 
+            border-width: 0 8px 8px 0; border-color: transparent #f97316 transparent transparent; 
+        }
+        .has-formula { background-color: #eff6ff !important; border-left: 3px solid var(--theme-color) !important; }
+        
+        .tooltip {
+            position: absolute; background-color: #1e293b; color: #f8fafc;
+            padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; max-width: 400px;
+            z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2); pointer-events: none; opacity: 0; transition: opacity 0.1s ease-in-out; border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .page-num-btn { 
+            min-width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; 
+            border-radius: 6px; font-size: 0.8rem; font-weight: 600; border: 1px solid #e2e8f0; background-color: white; 
+        }
+        .page-num-btn.active { background-color: var(--theme-color); color: white; border-color: var(--theme-color); }
+        
+        #history-sidebar { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateX(100%); width: 350px; }
+        #history-sidebar.open { transform: translateX(0); }
+
+        body.dark-mode { background-color: #0f172a; color: #e2e8f0; }
+        body.dark-mode header, body.dark-mode #upload-section, body.dark-mode #main-content > div, body.dark-mode #history-sidebar, body.dark-mode #history-sidebar > div, body.dark-mode #settings-modal > div, body.dark-mode #move-modal > div, body.dark-mode #append-modal > div, body.dark-mode #col-view-dropdown, body.dark-mode #workspace-sidebar, body.dark-mode #text-editor-section, body.dark-mode #filter-popup, body.dark-mode #html-panel { background-color: #1e293b !important; border-color: #334155 !important; }
+        body.dark-mode .bg-slate-50, body.dark-mode .bg-slate-100 { background-color: #0f172a !important; border-color: #334155 !important; }
+        body.dark-mode .text-slate-900, body.dark-mode .text-slate-800 { color: #f8fafc !important; }
+        body.dark-mode .text-slate-700 { color: #cbd5e1 !important; }
+        body.dark-mode .text-slate-600 { color: #94a3b8 !important; }
+        body.dark-mode .text-slate-500 { color: #64748b !important; }
+        body.dark-mode .text-slate-400 { color: #475569 !important; }
+        body.dark-mode .border-slate-200, body.dark-mode .border-slate-100, body.dark-mode .border-slate-300 { border-color: #334155 !important; }
+        body.dark-mode input, body.dark-mode select, body.dark-mode button, body.dark-mode textarea { background-color: #1e293b; color: #f8fafc; border-color: #334155; }
+        body.dark-mode textarea { background-color: #0f172a !important; }
+        body.dark-mode .sheet-btn { background-color: #0f172a; color: #94a3b8; border-color: #334155; }
+        body.dark-mode .sheet-btn.active { background-color: var(--theme-color) !important; color: white !important; border-color: var(--theme-color) !important; }
+        body.dark-mode th, body.dark-mode td { border-color: #334155 !important; }
+        body.dark-mode .bg-white { background-color: #1e293b !important; border-color: #334155 !important; }
+        body.dark-mode .row-hover-target:hover td { background-color: #334155 !important; }
+        body.dark-mode td[contenteditable="true"]:focus { background-color: #475569 !important; color: #fff !important; box-shadow: inset 0 0 0 3px var(--theme-color) !important; }
+        body.dark-mode .shadow-\[1px_0_0_\#e2e8f0\] { box-shadow: 1px 0 0 #334155 !important; }
+        body.dark-mode .btn-action { background-color: #1e293b !important; color: #cbd5e1 !important; border-color: #475569 !important; }
+        body.dark-mode .btn-action:hover { background-color: #475569 !important; color: white !important; }
+        body.dark-mode #app-preloader { background-color: #0f172a; }
+        body.dark-mode #app-preloader p { color: #e2e8f0; }
+        body.dark-mode .is-modified { background-color: rgba(245, 158, 11, 0.2) !important; }
+        body.dark-mode .has-formula { background-color: rgba(59, 130, 246, 0.1) !important; border-left: 3px solid var(--theme-color) !important; }
+        body.dark-mode ::-webkit-scrollbar-thumb { background: #475569; }
+
+        .workspace-file-item:hover { background-color: #f1f5f9; }
+        body.dark-mode .workspace-file-item:hover { background-color: #334155; }
+        .workspace-file-item.active { background-color: color-mix(in srgb, var(--theme-color) 15%, transparent); color: var(--theme-color); font-weight: 800; border-left: 3px solid var(--theme-color); padding-left: 0.5rem; }
+        
+        .open-file-tab.active { background-color: #e2e8f0; border-left: 3px solid var(--theme-color); }
+        body.dark-mode .open-file-tab.active { background-color: #334155; }
+
+        #workspace-sidebar { transition: width 0.25s ease, margin 0.25s ease; }
+        #workspace-sidebar.no-transition { transition: none !important; }
+        #workspace-sidebar.collapsed { width: 0 !important; overflow: hidden; margin-right: -1rem; border-width: 0; }
+
+        #html-panel.no-transition { transition: none !important; }
+
+        /* ─── ⋯ 더보기 드롭다운 ─── */
+        #more-menu-dropdown {
+            display: none;
+            position: absolute; top: calc(100% + 6px); right: 0;
+            background: #fff; border: 1px solid #e2e8f0;
+            border-radius: 12px; box-shadow: 0 8px 32px rgba(0,0,0,.18);
+            min-width: 220px; z-index: 9999; padding: 6px;
+        }
+        #more-menu-dropdown.open { display: block; }
+        .more-menu-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 8px;
+            font-size: 12px; font-weight: 700; color: #334155;
+            cursor: pointer; transition: background .1s; width: 100%;
+            background: transparent; border: none; text-align: left;
+        }
+        .more-menu-item:hover { background: #f1f5f9; }
+        .more-menu-item .menu-icon { font-size: 15px; width: 22px; text-align: center; flex-shrink: 0; }
+        .more-menu-item .menu-desc { font-size: 10px; font-weight: 500; color: #94a3b8; display: block; margin-top: 1px; }
+        .more-menu-sep { height: 1px; background: #f1f5f9; margin: 4px 0; }
+
+        /* ─── 비교/입력 모드 ─── */
+        #compare-mode-panel { display: none; }
+        #compare-mode-panel.active { display: flex; }
+        .compare-pane { flex:1; min-width:0; min-height:0; display:flex; flex-direction:column; background:#fff; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; position:relative; transition:border-color .15s; }
+        .compare-pane-header { background:#1e293b; color:#fff; padding:10px 14px; display:flex; align-items:center; gap:8px; flex-shrink:0; }
+        .compare-pane-header.right { background:#0f4c8a; }
+        .compare-table-wrap { flex:1; overflow:hidden; min-height:0; position:relative; }
+        .compare-pane.drag-over { border-color:#3b82f6; border-width:2px; }
+        .compare-pane.drag-over::after {
+            content: '📂 파일을 여기에 놓으세요';
+            position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+            background:rgba(59,130,246,0.13); border:3px dashed #3b82f6; border-radius:12px;
+            color:#1d4ed8; font-size:16px; font-weight:900; z-index:200; pointer-events:none; letter-spacing:0.02em;
+        }
+        /* compare-table (레거시 fallback) */
+        .compare-table { border-collapse:collapse; font-size:11px; }
+        /* Tabulator 비교 패널 커스텀 스타일 */
+        #cmp-left-table-wrap .tabulator,
+        #cmp-right-table-wrap .tabulator {
+            border:none; background:#fff; font-size:11px; font-family:inherit; border-radius:0;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-header,
+        #cmp-right-table-wrap .tabulator .tabulator-header {
+            background:#f8fafc; border-bottom:2px solid #e2e8f0; color:#475569;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-header .tabulator-col,
+        #cmp-right-table-wrap .tabulator .tabulator-header .tabulator-col {
+            background:#f8fafc; border-right:1px solid #e2e8f0;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-header .tabulator-col:hover,
+        #cmp-right-table-wrap .tabulator .tabulator-header .tabulator-col:hover {
+            background:#eff6ff;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input,
+        #cmp-right-table-wrap .tabulator .tabulator-header .tabulator-col .tabulator-header-filter input {
+            font-size:10px; padding:2px 4px; border-radius:4px; border:1px solid #cbd5e1; width:100%; box-sizing:border-box;
+        }
+        #cmp-left-table-wrap .tabulator-row,
+        #cmp-right-table-wrap .tabulator-row {
+            border-bottom:1px solid #f1f5f9; min-height:26px;
+        }
+        #cmp-left-table-wrap .tabulator-row:hover,
+        #cmp-right-table-wrap .tabulator-row:hover {
+            background:#f8fafc !important;
+        }
+        #cmp-left-table-wrap .tabulator-row .tabulator-cell,
+        #cmp-right-table-wrap .tabulator-row .tabulator-cell {
+            border-right:1px solid #f1f5f9; padding:3px 8px; font-size:11px;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-col-resize-handle,
+        #cmp-right-table-wrap .tabulator .tabulator-col-resize-handle {
+            width:4px; background:transparent;
+        }
+        #cmp-left-table-wrap .tabulator .tabulator-col-resize-handle:hover,
+        #cmp-right-table-wrap .tabulator .tabulator-col-resize-handle:hover {
+            background:#bfdbfe;
+        }
+        .col-pill { display:inline-flex; align-items:center; gap:4px; background:#e0f2fe; color:#0369a1; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:700; cursor:pointer; border:1px solid #bae6fd; }
+        .col-pill:hover { background:#bae6fd; }
+        .col-pill.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+        .col-pill.copy { background:#ede9fe; color:#7c3aed; border-color:#ddd6fe; }
+        .col-pill.copy.active { background:#7c3aed; color:#fff; }
+        .serial-tag { display:inline-flex; align-items:center; gap:4px; background:#fef9c3; color:#854d0e; border-radius:6px; padding:2px 8px; font-size:10px; font-weight:700; border:1px solid #fde68a; cursor:pointer; }
+        .serial-tag:hover { background:#fde68a; }
+        .serial-tag.active { background:#f59e0b; color:#fff; border-color:#f59e0b; }
+
+        /* 사이드바 리사이저 */
+        #sidebar-resizer {
+            width: 8px;
+            background: transparent;
+            cursor: col-resize;
+            flex-shrink: 0;
+            z-index: 20;
+            position: relative;
+            transition: background .15s;
+        }
+        #sidebar-resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0; bottom: 0;
+            width: 2px;
+            transform: translateX(-50%);
+            background: #e2e8f0;
+            border-radius: 2px;
+            transition: background .15s;
+        }
+        #sidebar-resizer:hover::after, #sidebar-resizer.active::after {
+            background: var(--theme-color, #3b82f6);
+        }
+
+        /* 헤더 파일명 표시 시 placeholder 숨김 */
+        #file-info-header:not(.hidden) ~ #file-info-placeholder,
+        #file-info-header.flex ~ #file-info-placeholder { display: none; }
+
+        /* html-panel 리사이저 */
+        #html-panel-resizer {
+            width: 8px;
+            background: transparent;
+            cursor: col-resize;
+            flex-shrink: 0;
+            z-index: 20;
+            position: relative;
+            transition: background .15s;
+            display: none;
+        }
+        #html-panel-resizer.visible { display: block; }
+        #html-panel-resizer::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0; bottom: 0;
+            width: 2px;
+            transform: translateX(-50%);
+            background: #e2e8f0;
+            border-radius: 2px;
+            transition: background .15s;
+        }
+        #html-panel-resizer:hover::after, #html-panel-resizer.active::after {
+            background: var(--theme-color, #3b82f6);
+        }
+
+        /* 비교 패널 divider */
+        #cmp-panel-divider {
+            cursor: col-resize;
+            padding: 0 6px;
+            transition: background .15s;
+            border-radius: 6px;
+        }
+        #cmp-panel-divider:hover {
+            background: rgba(99,102,241,.08);
+        }
+    </style>
+
+    <style>
+        /* 미리보기 전용 오버라이드 */
+        #app-preloader { display: none !important; }
+        #main-content { display: flex !important; }
+        #loader { display: none !important; }
+        #filter-popup, #col-view-dropdown, #preset-dropdown,
+        #smart-filter-suggest, #smart-filter-row { display: none !important; }
+        #html-panel, #html-panel-resizer, #show-html-btn { display: none !important; }
+        #text-editor-section { display: none !important; }
+    </style>
+</head>
+
+    <div id="app-preloader">
+        <div class="preloader-spinner"></div>
+        <p style="margin-top: 20px; font-weight: 900; color: #1e293b; font-size: 1.25rem;">시스템 초기화 중...</p>
+        <p style="margin-top: 8px; color: #64748b; font-size: 0.875rem;">엔진을 준비하고 있습니다.</p>
+    </div>
+
+    <div class="max-w-[1800px] w-full mx-auto flex gap-4 items-stretch flex-1 min-h-0 relative">
+        
+        <div id="workspace-sidebar" class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col flex-shrink-0 h-full z-10 relative overflow-hidden" style="width:256px">
+            <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-col gap-2 flex-shrink-0">
+                <div class="flex justify-between items-center w-full">
+                    <h2 class="text-sm font-black text-slate-800 flex items-center gap-2">📁 탐색기</h2>
+                    <div class="flex gap-1">
+                        <button id="refresh-folder-btn" class="text-xs text-slate-500 hover:text-blue-600 px-1 py-1 rounded transition-colors" title="폴더 새로고침">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                        <button id="close-sidebar-btn" class="text-xs text-slate-400 hover:text-slate-600 px-1 py-1 rounded transition-colors" title="탐색기 숨기기">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between w-full gap-1">
+                    <div id="explorer-breadcrumb" class="flex items-center gap-0.5 flex-1 min-w-0 overflow-hidden">
+                        <span class="text-[10px] text-slate-400 truncate">경로 없음</span>
+                    </div>
+                    <button id="open-folder-btn-sm" class="text-[10px] bg-white border border-slate-300 text-slate-600 px-2 py-1 rounded hover:bg-slate-100 font-bold transition-colors whitespace-nowrap flex-shrink-0">폴더 변경</button>
+                </div>
+            </div>
+            
+            <div id="open-files-section" class="border-b border-slate-200 flex flex-col flex-shrink-0 hidden">
+                <div class="px-4 py-2 bg-slate-50/50 flex justify-between items-center">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">열려있는 파일</span>
+                </div>
+                <div id="open-files-list" class="flex flex-col p-1 max-h-[150px] overflow-y-auto"></div>
+            </div>
+
+            <div class="px-4 py-2 bg-slate-50/50 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">데이터 파일</span>
+            </div>
+            <div id="workspace-file-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1 min-h-0">
+                <div class="py-12 px-4 text-center flex flex-col items-center justify-center text-slate-400 h-full">
+                    <svg class="w-8 h-8 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                    <p class="text-xs font-bold">[폴더 열기] 버튼을 눌러<br>작업 공간을 지정하세요.</p>
+                </div>
+            </div>
+
+            <div class="px-4 py-2 bg-slate-50/50 border-t border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1"><span>🌐</span> 웹 도구 (.html)</span>
+            </div>
+            <div id="html-file-list" class="max-h-[200px] overflow-y-auto p-2 flex flex-col gap-1 flex-shrink-0 bg-slate-50/30">
+                <p class="text-[10px] text-slate-400 text-center py-2">웹 도구가 없습니다.</p>
+            </div>
+            
+            <div class="p-3 border-t border-slate-100 text-center flex-shrink-0 bg-white">
+                <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-0.5">Workspace Mode</span>
+                <span class="text-[10px] text-slate-400 font-medium">.xlsx, .csv, .txt, .html 지원</span>
+            </div>
+        </div>
+
+        <div id="sidebar-resizer"></div>
+
+        <button id="show-sidebar-btn" class="hidden fixed left-0 top-1/2 -translate-y-1/2 bg-white border border-slate-200 shadow-md rounded-r-xl py-4 px-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 z-[100] transition-all" title="탐색기 열기">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+
+        <div class="flex-1 min-w-0 flex flex-col gap-2 h-full relative overflow-hidden" id="center-main-panel">
+            
+            <header class="bg-white px-3 py-1.5 rounded-xl shadow-sm border border-slate-200 flex items-center gap-2 flex-shrink-0 z-20 min-h-0">
+                <!-- 타이틀 -->
+                <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
+                <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.2</span>
+                <!-- 구분선 -->
+                <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
+                <!-- 현재 파일 -->
+                <div id="file-info-header" class="hidden items-center gap-1.5 min-w-0 flex-1">
+                    <span class="text-[10px] font-bold text-slate-400 flex-shrink-0">파일</span>
+                    <span id="current-file-name" class="text-xs font-black theme-text truncate"></span>
+                </div>
+                <div id="file-info-placeholder" class="flex-1 min-w-0"></div>
+                <!-- 버튼들 -->
+                <div class="flex items-center gap-1 flex-shrink-0 ml-auto">
+                    <button id="tut-start-btn" onclick="startTutorial()" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:4px 8px;font-size:10px;font-weight:800;color:#16a34a;cursor:pointer;white-space:nowrap;" title="대화형 튜토리얼">🎮 튜토리얼</button>
+                    <button id="download-app-btn" onclick="downloadThisApp()" class="p-1.5 bg-white border border-slate-200 hover:bg-blue-50 text-slate-500 rounded-lg transition-colors" title="앱 HTML 다운로드">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </button>
+                    <button id="settings-btn" class="p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="설정">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                    <button id="toggle-history-btn" class="hidden p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="작업이력">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <button id="toggle-memo-btn" class="hidden p-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-500 rounded-lg transition-colors" title="메모장">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                    </button>
+                    <div class="hidden relative" id="special-func-header-wrap">
+                        <button id="special-func-btn" class="flex items-center gap-1 bg-violet-600 hover:bg-violet-700 text-white rounded-lg px-2 py-1.5 text-[10px] font-bold transition-colors whitespace-nowrap" title="특수기능">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                            특수기능 ▾
+                        </button>
+                        <div id="special-func-dropdown" style="display:none;position:fixed;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.15);min-width:220px;z-index:99999;padding:6px">
+                            <div style="padding:6px 12px 4px;font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em">특수 기능</div>
+                            <button id="sf-menu-compare" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#1e293b;background:transparent;border:none;cursor:pointer;text-align:left" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                <span style="font-size:15px;width:22px;text-align:center">⚡</span>
+                                <span>데이터 비교 / 입력<span style="font-size:10px;font-weight:500;color:#94a3b8;display:block;margin-top:1px">VLOOKUP+ · 일련번호 · 자동매칭</span></span>
+                            </button>
+                            <button id="sf-menu-viz" onclick="switchMainTab('viz')" style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#1e293b;background:transparent;border:none;cursor:pointer;text-align:left" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+                                <span style="font-size:15px;width:22px;text-align:center">📊</span>
+                                <span>데이터 시각화<span style="font-size:10px;font-weight:500;color:#94a3b8;display:block;margin-top:1px">막대/선/파이 차트, 전처리, 집계</span></span>
+                            </button>
+                            <button style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#94a3b8;background:transparent;border:none;cursor:not-allowed;text-align:left;opacity:.6">
+                                <span style="font-size:15px;width:22px;text-align:center">🔧</span>
+                                <span>기능 2<span style="font-size:10px;font-weight:500;color:#c0c9d4;display:block;margin-top:1px">추후 개발 예정</span></span>
+                            </button>
+                            <button style="display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border-radius:8px;font-size:12px;font-weight:700;color:#94a3b8;background:transparent;border:none;cursor:not-allowed;text-align:left;opacity:.6">
+                                <span style="font-size:15px;width:22px;text-align:center">🧩</span>
+                                <span>기능 3<span style="font-size:10px;font-weight:500;color:#c0c9d4;display:block;margin-top:1px">추후 개발 예정</span></span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="hidden" id="more-menu-wrap"><div id="more-menu-dropdown" style="display:none"></div></div>
+                </div>
+            </header>
+
+            <!-- ═══════════════ 비교/입력 모드 패널 ═══════════════ -->
+            <div id="compare-mode-panel" class="flex-col gap-3" style="display:none; position:absolute; inset:0; z-index:100; overflow:hidden; background:#f1f5f9;">
+                <!-- 상단 컨트롤 -->
+                <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-3 flex-shrink-0 flex flex-wrap gap-3 items-center">
+                    <div class="flex gap-2 items-center">
+                        <button id="cmp-close-btn" title="특수기능 닫기" style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all .15s" onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'" onmouseout="this.style.background='#f1f5f9';this.style.color='#64748b'">
+                            <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg> 닫기
+                        </button>
+                        <div style="width:1px;height:20px;background:#e2e8f0"></div>
+                        <button id="cmp-tab-compare" class="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white transition-all">🔍 데이터 비교</button>
+                        <button id="cmp-tab-vlookup" class="px-4 py-2 rounded-lg text-xs font-bold bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 transition-all">📥 데이터 입력 (VLOOKUP+)</button>
+                    </div>
+                    <div class="h-6 w-px bg-slate-200"></div>
+                    <div class="flex gap-2 items-center flex-wrap" id="cmp-key-config">
+                        <span class="text-[10px] font-black text-slate-400 uppercase">키 방식</span>
+                        <!-- 키 방식 토글 -->
+                        <div style="display:flex;background:#f1f5f9;border-radius:8px;padding:2px;gap:2px">
+                            <button id="cmp-key-mode-single" style="padding:3px 10px;border-radius:6px;font-size:10px;font-weight:800;border:none;cursor:pointer;background:#fff;color:#3730a3;box-shadow:0 1px 3px rgba(0,0,0,.12)">단일 열</button>
+                            <button id="cmp-key-mode-serial" style="padding:3px 10px;border-radius:6px;font-size:10px;font-weight:800;border:none;cursor:pointer;background:transparent;color:#64748b">🔢 일련번호</button>
+                        </div>
+                        <!-- 단일 열 모드 -->
+                        <div id="cmp-key-single-area" class="flex gap-2 items-center flex-wrap">
+                            <div class="flex gap-1 flex-wrap items-center">
+                                <span class="text-[10px] text-slate-400">왼쪽:</span>
+                                <span id="cmp-left-key-display" class="text-[10px] text-slate-300 italic">열 선택 필요</span>
+                            </div>
+                            <span class="text-[10px] text-slate-300">↔</span>
+                            <div class="flex gap-1 flex-wrap items-center">
+                                <span class="text-[10px] text-slate-400">오른쪽:</span>
+                                <span id="cmp-right-key-display" class="text-[10px] text-slate-300 italic">열 선택 필요</span>
+                            </div>
+                            <button id="cmp-auto-match-btn" class="col-pill">✨ 자동매칭</button>
+                        </div>
+                        <!-- 일련번호 모드 -->
+                        <div id="cmp-key-serial-area" style="display:none" class="flex gap-2 items-center">
+                            <span id="cmp-serial-status" class="text-[10px] text-amber-700 font-bold italic">미설정</span>
+                            <button id="cmp-serial-config-btn" class="serial-tag active">⚙️ 일련번호 설정</button>
+                        </div>
+                    </div>
+                    <!-- 실행 버튼 영역 (항상 오른쪽 끝 고정) -->
+                    <div class="ml-auto flex gap-2 items-center flex-shrink-0">
+                        <!-- 비교 모드 버튼 -->
+                        <button id="cmp-run-btn" class="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">▶ 비교 실행</button>
+                        <!-- 입력(VLOOKUP) 모드 버튼 -->
+                        <button id="cmp-vlookup-run-btn" class="hidden px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-lg hover:bg-indigo-700 transition-colors">▶ 데이터 입력 실행</button>
+                        <button id="cmp-vlookup-save-btn" class="px-4 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 hidden transition-colors">💾 저장</button>
+                        <button id="cmp-vlookup-export-btn" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 hidden transition-colors">⬇ 내보내기</button>
+                    </div>
+                    <!-- (레거시 id 호환) -->
+                    <div id="cmp-vlookup-ctrl" class="hidden"></div>
+                    <div id="cmp-compare-ctrl" class="hidden"></div>
+                </div>
+
+                <!-- 통계 바 -->
+                <div id="cmp-stats-bar" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm px-4 py-2 flex-shrink-0 flex gap-6 items-center text-xs font-bold">
+                    <span class="text-slate-500">비교 결과:</span>
+                    <span id="cmp-stat-total" class="text-slate-700">-</span>
+                    <span class="text-green-600">✅ 일치: <span id="cmp-stat-match">-</span></span>
+                    <span class="text-red-500">❌ 불일치: <span id="cmp-stat-nomatch">-</span></span>
+                    <span id="cmp-stat-vlookup-info" class="hidden text-indigo-600">📥 입력됨: <span id="cmp-stat-filled">-</span>건</span>
+                    <div class="ml-auto flex gap-1.5">
+                        <button id="cmp-filter-match" class="text-[10px] px-3 py-1 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 font-bold transition-colors">✅ 일치만</button>
+                        <button id="cmp-filter-nomatch" class="text-[10px] px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 font-bold transition-colors">❌ 불일치만</button>
+                        <button id="cmp-filter-all" class="text-[10px] px-3 py-1 bg-slate-800 text-white border border-slate-700 rounded-lg hover:bg-slate-700 font-bold transition-colors">전체</button>
+                    </div>
+                </div>
+
+                <!-- 스플릿 뷰 -->
+                <div class="flex gap-3 flex-1" style="min-height:0;overflow:hidden">
+                    <!-- 왼쪽 패널 -->
+                    <div class="compare-pane" id="cmp-left-pane" style="flex:1">
+                        <div class="compare-pane-header">
+                            <span class="text-sm">📄</span>
+                            <span id="cmp-left-title" class="text-xs font-bold truncate flex-1">왼쪽 파일 (기준)</span>
+                            <button id="cmp-left-open-btn" class="text-[10px] bg-white/20 hover:bg-white/30 px-2 py-1 rounded font-bold">📁 파일 선택</button>
+                        </div>
+                        <!-- 열 선택 헤더 -->
+                        <div id="cmp-left-col-select" class="hidden bg-blue-50 border-b border-blue-200 p-2 flex-shrink-0">
+                            <div class="text-[10px] font-black text-blue-700 mb-1.5">🔑 비교 키 열 선택 (클릭)</div>
+                            <div id="cmp-left-col-pills" class="flex flex-wrap gap-1"></div>
+                        </div>
+                        <div id="cmp-left-copy-select" class="hidden bg-purple-50 border-b border-purple-200 p-2 flex-shrink-0">
+                            <div class="text-[10px] font-black text-purple-700 mb-1.5 flex items-center justify-between">
+                            <span>📋 복사 대상 열 선택 (VLOOKUP 입력받을 열)</span>
+                            <button id="cmp-add-new-col-btn" style="background:#7c3aed;color:#fff;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;border:none;cursor:pointer">+ 새 열 추가</button>
+                        </div>
+                            <div id="cmp-left-copy-pills" class="flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="compare-table-wrap" id="cmp-left-table-wrap">
+                            <div class="flex items-center justify-center h-full text-slate-400 text-sm p-8 text-center select-none">
+                                <div><div class="text-3xl mb-3">📂</div><div class="font-bold mb-1">파일을 선택하거나</div><div class="font-bold mb-2">여기에 끌어다 놓으세요</div><div class="text-xs text-slate-300">xlsx · xlsm · xls · csv</div></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 중간 구분선 -->
+                    <div id="cmp-panel-divider" class="flex flex-col items-center justify-center gap-2 flex-shrink-0">
+                        <div class="w-1 bg-slate-200 rounded-full flex-1"></div>
+                        <div class="text-lg">⇄</div>
+                        <div class="w-1 bg-slate-200 rounded-full flex-1"></div>
+                    </div>
+                    <!-- 오른쪽 패널 -->
+                    <div class="compare-pane" id="cmp-right-pane" style="flex:1">
+                        <div class="compare-pane-header right">
+                            <span class="text-sm">📊</span>
+                            <span id="cmp-right-title" class="text-xs font-bold truncate flex-1">오른쪽 파일 (참조)</span>
+                            <button id="cmp-right-open-btn" class="text-[10px] bg-white/20 hover:bg-white/30 px-2 py-1 rounded font-bold">📁 파일 선택</button>
+                        </div>
+                        <div id="cmp-right-col-select" class="hidden bg-blue-50 border-b border-blue-200 p-2 flex-shrink-0">
+                            <div class="text-[10px] font-black text-blue-700 mb-1.5">🔑 비교 키 열 선택 (클릭)</div>
+                            <div id="cmp-right-col-pills" class="flex flex-wrap gap-1"></div>
+                        </div>
+                        <div id="cmp-right-copy-select" class="hidden bg-purple-50 border-b border-purple-200 p-2 flex-shrink-0">
+                            <div class="text-[10px] font-black text-purple-700 mb-1.5">📤 복사할 열 선택 (오른쪽→왼쪽으로 가져올 열)</div>
+                            <div id="cmp-right-copy-pills" class="flex flex-wrap gap-1"></div>
+                        </div>
+                        <div class="compare-table-wrap" id="cmp-right-table-wrap">
+                            <div class="flex items-center justify-center h-full text-slate-400 text-sm p-8 text-center select-none">
+                                <div><div class="text-3xl mb-3">📂</div><div class="font-bold mb-1">파일을 선택하거나</div><div class="font-bold mb-2">여기에 끌어다 놓으세요</div><div class="text-xs text-slate-300">xlsx · xlsm · xls · csv</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ═══════════════ 시각화 패널 (우측 드로어) ═══════════════ -->
+            <div id="panel-viz" style="display:none;position:absolute;top:0;right:0;bottom:0;width:480px;z-index:50;flex-direction:column;background:#fff;border-left:1px solid #e2e8f0;box-shadow:-4px 0 16px rgba(0,0,0,.08);">
+              <!-- 헤더 -->
+              <div style="padding:8px 10px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;flex-shrink:0;background:#f8fafc;">
+                <button onclick="switchMainTab(null)" style="background:#fff;border:1px solid #e2e8f0;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:800;color:#64748b;cursor:pointer;display:flex;align-items:center;gap:4px;" onmouseover="this.style.background='#fee2e2';this.style.color='#dc2626'" onmouseout="this.style.background='#fff';this.style.color='#64748b'">✕ 닫기</button>
+                <span style="font-size:12px;font-weight:800;color:#334155;">📊 데이터 시각화</span>
+              </div>
+              <!-- 설정 + 차트 세로 분할 -->
+              <div style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+                <!-- 설정 영역 (스크롤) -->
+                <div style="overflow-y:auto;flex-shrink:0;max-height:55%;padding:10px;display:flex;flex-direction:column;gap:10px;border-bottom:1px solid #e2e8f0;">
+                  <!-- 데이터범위 + 차트종류 가로 배치 -->
+                  <div style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">데이터 범위</p>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-range" value="filtered" id="viz-range-filtered" checked> 필터된 행</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;margin-top:3px;"><input type="radio" name="viz-range" value="all" id="viz-range-all"> 전체</label>
+                    </div>
+                    <div style="flex:1;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">차트 종류</p>
+                      <div style="display:flex;gap:4px;">
+                        <button onclick="setVizChartType('barline')" id="viz-type-barline" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">막대/선</button>
+                        <button onclick="setVizChartType('pie')" id="viz-type-pie" class="viz-type-btn" style="flex:1;padding:4px 0;font-size:10px;font-weight:700;border-radius:6px;border:1px solid #cbd5e1;cursor:pointer;background:#fff;color:#475569;">파이</button>
+                      </div>
+                      <div id="viz-barline-sub" style="display:none;margin-top:5px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-use-line"> 선 그래프</label>
+                        <label style="display:flex;align-items:center;gap:4px;font-size:11px;cursor:pointer;" title="Y축 컬럼을 구간으로 나눠 X축으로 사용"><input type="checkbox" id="viz-barline-use-bins"> 구간 모드</label>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 컬럼 분석 -->
+                  <div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;">컬럼 분석</p>
+                      <button onclick="runVizColumnDetect()" style="font-size:9px;padding:2px 7px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;cursor:pointer;">재감지</button>
+                    </div>
+                    <div id="viz-col-detect-info" style="font-size:10px;color:#94a3b8;">파일을 열면 자동 감지됩니다.</div>
+                  </div>
+                  <!-- Y축 + X축 가로 배치 -->
+                  <div style="display:flex;gap:8px;">
+                    <div id="viz-y-section" style="flex:1;min-width:0;">
+                      <p id="viz-y-label" style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">Y축 컬럼</p>
+                      <select id="viz-y-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;"></select>
+                      <div id="viz-y-stats" style="font-size:9px;color:#94a3b8;margin-top:2px;"></div>
+                      <select id="viz-y-preprocess" style="width:100%;font-size:10px;border:1px solid #e2e8f0;border-radius:6px;padding:2px 4px;margin-top:3px;">
+                        <option value="skip">결측/문자 제외</option>
+                        <option value="zero">0으로 치환</option>
+                        <option value="mean">평균으로 치환</option>
+                      </select>
+                    </div>
+                    <div id="viz-x-section" style="flex:1;min-width:0;">
+                      <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:3px;">X축 컬럼</p>
+                      <select id="viz-x-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;">
+                        <option value="__rowindex__">행 번호</option>
+                      </select>
+                    </div>
+                  </div>
+                  <!-- 집계방식 -->
+                  <div id="viz-agg-section">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">집계 방식</p>
+                    <div style="display:flex;gap:12px;align-items:center;">
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-agg" value="raw" id="viz-agg-raw" checked> Raw</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-agg" value="group" id="viz-agg-group"> 그룹핑</label>
+                      <div id="viz-agg-method-wrap" style="display:none;">
+                        <select id="viz-agg-method" style="font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;">
+                          <option value="sum">합계</option>
+                          <option value="avg">평균</option>
+                          <option value="count">개수</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 파이 집계 방식 -->
+                  <div id="viz-pie-agg-section" style="display:none;">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">파이 집계 방식</p>
+                    <div style="display:flex;gap:8px;margin-bottom:4px;">
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-pie-agg" value="count" id="viz-pie-agg-count" checked> 건수</label>
+                      <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;"><input type="radio" name="viz-pie-agg" value="sum" id="viz-pie-agg-sum"> 합계</label>
+                    </div>
+                    <div id="viz-pie-sum-col-wrap" style="display:none;">
+                      <p style="font-size:9px;color:#94a3b8;margin-bottom:2px;">합계 컬럼</p>
+                      <select id="viz-pie-sum-col" style="width:100%;font-size:11px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;"></select>
+                    </div>
+                  </div>
+                  <!-- 파이 구간 설정 -->
+                  <div id="viz-bins-section" style="display:none;">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">구간 설정</p>
+                    <div style="display:flex;gap:4px;align-items:center;margin-bottom:6px;">
+                      <select id="viz-bin-strategy" style="flex:1;font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;background:#fff;">
+                        <option value="auto">자동 (4분위)</option>
+                        <option value="log">로그 단위 (금액형)</option>
+                        <option value="equal">균등 분할</option>
+                        <option value="age10">나이 10세 구간</option>
+                        <option value="age5">나이 5세 구간</option>
+                      </select>
+                      <input type="number" id="viz-bin-count" min="2" max="30" value="4" title="분할 수" style="width:42px;font-size:10px;border:1px solid #e2e8f0;border-radius:5px;padding:2px 4px;text-align:center;">
+                      <button onclick="vizAutoSuggestBins()" style="font-size:9px;padding:2px 8px;background:#6366f1;color:#fff;border:none;border-radius:5px;cursor:pointer;white-space:nowrap;">자동구간</button>
+                    </div>
+                    <div id="viz-bins-list" style="display:flex;flex-direction:column;gap:4px;"></div>
+                    <button onclick="vizAddBin()" style="margin-top:4px;width:100%;font-size:10px;padding:3px;border:1px dashed #cbd5e1;border-radius:6px;color:#94a3b8;background:transparent;cursor:pointer;">+ 구간 추가</button>
+                  </div>
+                  <!-- 파이 레이블 옵션 -->
+                  <div id="viz-pie-label-section" style="display:none;">
+                    <p style="font-size:9px;font-weight:900;color:#94a3b8;text-transform:uppercase;margin-bottom:4px;">슬라이스 레이블</p>
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-name" checked> 레이블명</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-pct" checked> 퍼센트 (%)</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-count"> 건수</label>
+                      <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;"><input type="checkbox" id="viz-pie-label-sum"> 합계금액</label>
+                    </div>
+                  </div>
+                  <!-- 생성 버튼 -->
+                  <button onclick="generateVizChart()" style="padding:7px;background:#2563eb;color:#fff;font-size:12px;font-weight:800;border-radius:8px;border:none;cursor:pointer;width:100%;">📊 그래프 생성</button>
+                </div>
+                <!-- 차트 영역 -->
+                <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:10px;">
+                  <div id="viz-empty-msg" style="flex:1;display:flex;align-items:center;justify-content:center;color:#cbd5e1;font-size:13px;">그래프 생성 버튼을 눌러주세요</div>
+                  <div id="viz-chart-wrap" style="display:none;flex:1;flex-direction:column;">
+                    <div id="viz-chart-title" style="font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;"></div>
+                    <div style="flex:1;position:relative;min-height:200px;">
+                      <canvas id="viz-chart-canvas" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+            <!-- 일련번호 설정 모달 -->
+            <div id="serial-modal" class="hidden fixed inset-0 bg-slate-900/60 z-[700] flex items-center justify-center backdrop-blur-sm">
+                <div class="bg-white rounded-2xl shadow-2xl w-[520px] max-h-[80vh] overflow-y-auto">
+                    <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                        <h2 class="font-black text-slate-800 text-lg">⚙️ 일련번호 설정</h2>
+                        <button id="close-serial-modal" class="text-slate-400 hover:text-slate-600 text-xl">✕</button>
+                    </div>
+                    <div class="p-6 space-y-5">
+                        <p class="text-xs text-slate-500 leading-relaxed">동명이인 구분을 위해 이름+생년월일 등을 합쳐 고유 일련번호를 만듭니다.<br>주민번호/사업자번호의 <b>하이픈(-)은 자동으로 제거</b>하여 비교합니다.</p>
+                        <div class="space-y-3">
+                            <div class="font-bold text-xs text-slate-700">👈 왼쪽 파일에서 조합할 열</div>
+                            <div id="serial-left-pills" class="flex flex-wrap gap-1.5 min-h-8 p-2 bg-slate-50 rounded-lg border border-slate-200"></div>
+                            <div class="font-bold text-xs text-slate-700">👉 오른쪽 파일에서 조합할 열 (순서를 왼쪽과 맞추세요)</div>
+                            <div id="serial-right-pills" class="flex flex-wrap gap-1.5 min-h-8 p-2 bg-slate-50 rounded-lg border border-slate-200"></div>
+                        </div>
+                        <div class="bg-amber-50 rounded-xl p-3 border border-amber-200">
+                            <div class="font-bold text-xs text-amber-800 mb-2">🤖 자동 감지 추천</div>
+                            <div id="serial-auto-suggest" class="text-[11px] text-amber-700 space-y-1"></div>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3 border border-slate-200">
+                            <div class="font-bold text-xs text-slate-600 mb-1">미리보기 (첫 3행)</div>
+                            <div id="serial-preview" class="text-[11px] font-mono text-slate-700 space-y-0.5"></div>
+                        </div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
+                        <button id="serial-modal-cancel" class="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">취소</button>
+                        <button id="serial-modal-apply" class="px-5 py-2 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600">✅ 적용</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 폴더 미열림 상태 -->
+            <div id="upload-section" class="bg-white p-12 rounded-2xl shadow-sm border border-slate-200 text-center flex-1 flex flex-col justify-center min-h-0">
+                <div class="max-w-xl mx-auto w-full">
+                    <button id="open-folder-main-btn" class="w-full border-2 border-dashed border-blue-400 bg-blue-50/50 hover:bg-blue-100 rounded-2xl p-16 cursor-pointer transition-all flex flex-col items-center justify-center focus:outline-none group">
+                        <div class="w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center text-white mb-6 shadow-lg transform group-hover:scale-105 transition-transform">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+                        </div>
+                        <h2 class="text-2xl font-black text-slate-800 mb-2">작업 폴더 통째로 열기</h2>
+                        <p class="text-slate-500 font-medium text-sm">다중 엑셀 파일 관리 및 웹 도구 연동을 위해 폴더 권한을 허용해주세요.</p>
+                        <p class="text-blue-600 font-bold text-xs mt-4 px-4 py-2 bg-white rounded-full shadow-sm border border-blue-100 inline-block">클릭하여 시작하세요</p>
+                    </button>
+                </div>
+            </div>
+            <!-- 폴더 열림 후 대기 상태 -->
+            <div id="folder-ready-section" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col items-center justify-center min-h-0 gap-6">
+                <div class="flex flex-col items-center gap-3 text-center">
+                    <div class="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <p class="text-lg font-black text-slate-800" id="folder-ready-name">폴더 열림</p>
+                        <p class="text-sm text-slate-400 font-medium mt-1">왼쪽 탐색기에서 파일을 클릭해 여세요</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 text-xs text-slate-400">
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-blue-400 rounded-full inline-block"></span> .xlsx .xlsm</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-green-400 rounded-full inline-block"></span> .csv</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2 h-2 bg-slate-300 rounded-full inline-block"></span> .txt</span>
+                </div>
+            </div>
+
+            <div id="loader" class="hidden absolute inset-0 z-50 bg-white/95 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-xl m-4" style="display:none;flex-direction:column;align-items:center;justify-content:center">
+                <div class="loader-ring mb-4"></div>
+                <p id="loader-text" class="text-slate-800 font-bold text-xl">데이터를 스캔하고 있습니다...</p>
+                <p id="loading-progress" class="theme-text font-bold mt-2 text-sm"></p>
+            </div>
+
+            <div id="main-content" class="hidden flex-col gap-4 flex-1 min-h-0">
+                <div id="tabs-bar" class="bg-white p-3 rounded-xl shadow-sm border border-slate-200 flex-shrink-0 overflow-x-auto">
+                    <div class="flex items-center gap-2 w-max min-w-full">
+                        <div id="sheet-tabs" class="flex flex-nowrap gap-2 whitespace-nowrap"></div>
+                        <button id="add-sheet-btn" title="새 시트 추가" class="hidden flex-shrink-0 ml-1 w-7 h-7 flex items-center justify-center rounded-lg border border-dashed border-slate-300 text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-colors font-bold text-base leading-none dark:border-slate-600 dark:text-slate-500 dark:hover:border-blue-500 dark:hover:text-blue-400 dark:hover:bg-blue-900/20">+</button>
+                    </div>
+                </div>
+
+                <div id="toolbar-panel" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col gap-3 flex-shrink-0">
+                    <div class="grid grid-cols-1 xl:grid-cols-12 gap-3 items-end">
+                        
+                        <div class="xl:col-span-5 space-y-1 relative" id="filter-container">
+                            <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Search & Filter</label>
+                            <div class="flex items-center gap-2">
+                                <div class="flex-1 flex items-center gap-2 bg-slate-50 p-1 rounded-lg border border-slate-200">
+                                    <input type="text" id="search-input" placeholder="검색어 입력..." class="flex-1 min-w-0 bg-transparent px-2 py-1 text-xs focus:outline-none font-medium">
+                                    <div class="flex items-center gap-2 px-2 border-l border-slate-200">
+                                        <label class="flex items-center gap-1 cursor-pointer group" title="띄어쓰기로 여러 단어 검색">
+                                            <input type="checkbox" id="multi-search-toggle" class="w-3 h-3 theme-check rounded border-slate-300">
+                                            <span class="text-[10px] font-bold text-slate-500 whitespace-nowrap">다중</span>
+                                        </label>
+                                        <label class="flex items-center gap-1 cursor-pointer group" title="셀 클릭 시 바로 복사">
+                                            <input type="checkbox" id="copy-mode-toggle" class="w-3 h-3 theme-check rounded border-slate-300">
+                                            <span class="text-[10px] font-bold text-slate-500 whitespace-nowrap">복사</span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <button id="toggle-filter-btn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 p-1.5 rounded-lg shadow-sm transition-colors dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300" title="상세 필터 설정">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                </button>
+                                <button id="col-filter-row-btn" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-300 p-1.5 rounded-lg shadow-sm transition-colors" title="열 필터 입력창 표시/숨기기">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h6"/></svg>
+                                </button>
+                                <button id="smart-filter-toggle-btn" class="bg-white border border-slate-200 hover:bg-violet-50 text-slate-300 p-1.5 rounded-lg shadow-sm transition-colors" title="스마트 필터 (열이름:조건 복합 필터)">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                </button>
+                                
+                                <div id="filter-popup" class="hidden absolute top-full left-0 md:right-0 mt-2 w-80 bg-white border border-slate-200 shadow-xl rounded-xl p-4 z-[250] flex-col gap-4 dark:bg-slate-800 dark:border-slate-700">
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase mb-1">기간 필터 (Date Range)</label>
+                                        <select id="date-column-select" class="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1.5 text-xs font-bold focus:outline-none mb-2 theme-ring dark:bg-slate-900 dark:border-slate-600"><option value="-1">열 선택</option></select>
+                                        <div class="flex gap-1 items-center">
+                                            <input type="date" id="date-start" class="flex-1 bg-white border border-slate-200 rounded px-1 py-1.5 text-[11px] focus:outline-none theme-ring dark:bg-slate-900 dark:border-slate-600">
+                                            <span class="text-slate-400 text-[10px]">~</span>
+                                            <input type="date" id="date-end" class="flex-1 bg-white border border-slate-200 rounded px-1 py-1.5 text-[11px] focus:outline-none theme-ring dark:bg-slate-900 dark:border-slate-600">
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-2 pt-2">
+                                        <button id="apply-filter-btn" class="flex-1 bg-slate-800 text-white py-1.5 rounded text-xs font-bold hover:bg-black transition-colors">필터 적용</button>
+                                        <button id="reset-filter-btn" class="flex-1 bg-white border border-slate-300 text-slate-600 py-1.5 rounded text-xs font-bold hover:bg-slate-50 transition-colors dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300">초기화</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="xl:col-span-3 space-y-1 relative">
+                            <label class="text-[10px] font-black theme-text uppercase ml-1">Column View</label>
+                            <div class="flex gap-1.5">
+                            <button id="col-view-btn" class="flex-1 flex items-center justify-between bg-white theme-border border rounded-lg px-3 py-1.5 text-xs focus:outline-none font-bold theme-text theme-light-bg transition-colors shadow-sm">
+                                <span>열 숨기기/표시</span>
+                                <span class="text-[10px]">▼</span>
+                            </button>
+                            <div class="relative" id="preset-wrap">
+                              <button id="preset-btn" class="flex items-center gap-1 bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 shadow-sm transition-colors">
+                                📋 프리셋 <span class="text-[10px]">▼</span>
+                              </button>
+                              <div id="preset-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-lg p-2 w-64 z-[200]">
+                                <div class="text-[10px] font-black text-slate-400 uppercase mb-2 px-1">저장된 프리셋</div>
+                                <div id="preset-list" class="space-y-1 mb-2"></div>
+                                <div class="border-t border-slate-100 pt-2 mt-1">
+                                  <button id="preset-save-btn" class="w-full text-left px-2 py-1.5 text-[11px] font-bold text-blue-600 hover:bg-blue-50 rounded transition-colors">+ 현재 상태를 프리셋으로 저장</button>
+                                </div>
+                              </div>
+                            </div>
+                            </div>
+                            <div id="col-view-dropdown" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-lg p-2 w-56 z-[200] max-h-64 overflow-y-auto flex-col">
+                                <div class="flex gap-1 mb-2 pb-2 border-b border-slate-100">
+                                    <button id="col-show-all-btn" class="flex-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 rounded transition-colors">모두 표시</button>
+                                    <button id="col-hide-all-btn" class="flex-1 text-[11px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 py-1 rounded transition-colors">모두 숨기기</button>
+                                </div>
+                                <div id="col-checkbox-list" class="overflow-y-auto flex-1 space-y-1 pr-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="xl:col-span-4 flex items-center justify-end gap-2 h-[30px] mt-auto">
+                            <div class="flex items-center bg-white border border-slate-300 rounded-lg overflow-hidden h-full flex-[1.5] shadow-sm dark:border-slate-600">
+                                <div class="px-2 bg-slate-50 text-[10px] font-black text-slate-500 border-r border-slate-300 h-full flex items-center dark:bg-slate-800 dark:text-slate-400 dark:border-slate-600">
+                                    선택 <span id="selected-count" class="text-blue-600 ml-1 text-xs">0</span>
+                                </div>
+                                <button id="bulk-append-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors border-r border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700" title="선택한 행들에 데이터를 일괄로 덧붙입니다.">추가</button>
+                                <button id="bulk-bizno-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors border-r border-slate-300 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-600 dark:hover:bg-slate-700" title="사업자번호로 법인/개인 구분">구분</button>
+                                <button id="bulk-move-btn" class="flex-1 h-full text-[10px] font-bold text-slate-700 hover:bg-slate-100 transition-colors dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-700" title="선택한 행들을 다른 시트로 이동시킵니다.">이동</button>
+                            </div>
+                            <button id="undo-btn" disabled title="취소할 작업 없음"
+                                class="flex-[0.6] h-full bg-amber-500 text-white font-bold rounded-lg text-[10px] hover:bg-amber-600 transition-all shadow-sm whitespace-nowrap disabled:opacity-30 disabled:cursor-not-allowed">
+                                ↩ 취소
+                            </button>
+                            <button id="save-btn" class="flex-[0.8] h-full bg-slate-700 text-white font-bold rounded-lg text-[10px] hover:bg-slate-800 transition-all shadow-sm whitespace-nowrap" title="원본 파일 위치에 그대로 덮어씌웁니다.">
+                                덮어쓰기
+                            </button>
+                            <button id="save-as-btn" class="flex-[0.8] h-full theme-bg text-white font-bold rounded-lg text-[10px] hover:opacity-90 transition-all shadow-sm whitespace-nowrap">
+                                새 이름
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 스마트 필터 바 -->
+                    <div id="smart-filter-row" class="flex items-center gap-2 pt-1 border-t border-slate-100 mt-1">
+                        <label class="text-[10px] font-black text-violet-500 uppercase whitespace-nowrap shrink-0 flex items-center gap-1">
+                            <span>🔎</span> 스마트 필터
+                        </label>
+                        <div class="flex-1 relative">
+                            <input type="text" id="smart-filter-input"
+                                placeholder="예) 이름:홍길동, 금액:>100만, 주소:~서울, 상태:!=완료"
+                                title="열이름:조건 형식 · 쉼표로 AND 조건 · 연산자: ~포함(기본) =같음 !=다름 > >= < <= ^시작 $끝 · 단위: 만(×10000) 억(×100000000)"
+                                class="w-full bg-violet-50 border border-violet-200 rounded-lg px-3 py-1.5 text-xs font-medium focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 placeholder-violet-300">
+                            <div id="smart-filter-suggest" class="hidden absolute top-full left-0 mt-1 bg-white border border-slate-200 shadow-xl rounded-lg z-[300] max-h-48 overflow-y-auto min-w-[200px]"></div>
+                        </div>
+                        <button id="smart-filter-apply-btn" class="px-3 py-1.5 bg-violet-500 text-white text-[11px] font-bold rounded-lg hover:bg-violet-600 transition-colors whitespace-nowrap shadow-sm">적용</button>
+                        <button id="smart-filter-clear-btn" class="px-3 py-1.5 bg-slate-100 text-slate-500 text-[11px] font-bold rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors whitespace-nowrap">초기화</button>
+                        <button class="text-slate-300 hover:text-violet-500 text-sm transition-colors"
+                            title="스마트 필터 사용법&#10;─────────────────&#10;열이름:조건 형식으로 입력&#10;쉼표로 여러 조건 구분 (AND)&#10;&#10;연산자 (생략 시 포함):&#10;  ~서울  → 포함&#10;  =홍길동 → 정확히 일치&#10;  !=완료  → 다름&#10;  >100만  → 초과&#10;  >=0     → 이상&#10;  <50만   → 미만&#10;  <=100   → 이하&#10;  ^김     → 시작&#10;  $동     → 끝&#10;&#10;단위: 만=×10000, 억=×100000000&#10;&#10;예) 이름:김, 금액:>100만, 주소:~서울&#10;    → 이름에 '김' 포함 AND&#10;       금액 100만 초과 AND&#10;       주소에 '서울' 포함">❓</button>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-slate-200 rounded-xl shadow-sm flex flex-col flex-1 min-h-0 overflow-hidden relative">
+                    <div class="overflow-x-auto overflow-y-auto flex-1 absolute inset-0 w-full h-full" id="main-table-scroll">
+                        <table class="w-full text-left text-sm text-slate-600 border-collapse" id="main-table">
+                            <thead class="text-[11px] text-slate-500 uppercase bg-slate-50 sticky top-0 z-20 shadow-sm border-b border-slate-200">
+                                <tr id="thead-row"></tr>
+                                <tr id="thead-filter-row" class="bg-white border-b border-slate-100"></tr>
+                            </thead>
+                            <tbody id="tbody-rows" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl flex-shrink-0">
+                    <div class="flex items-center gap-3">
+                        <button id="compact-mode-btn" title="툴바/열필터 숨기기 (데이터 더 넓게 보기)"
+                            class="flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold rounded border border-slate-300 bg-white text-slate-500 hover:bg-slate-100 transition-colors">
+                            <span id="compact-mode-icon">⊞</span> 확장
+                        </button>
+                        <div class="px-2 py-0.5 bg-slate-800 text-white rounded text-[11px] font-black">
+                            Total: <span id="row-count">0</span>
+                        </div>
+                        <span id="page-info" class="text-[11px] font-bold text-slate-400">1 / 1 페이지</span>
+                        <select id="rows-per-page-select" class="text-[11px] border border-slate-200 rounded px-1.5 py-0.5 bg-white text-slate-600 font-bold focus:outline-none cursor-pointer">
+                            <option value="10">10개</option>
+                            <option value="50">50개</option>
+                            <option value="100" selected>100개</option>
+                            <option value="500">500개</option>
+                            <option value="1000">1000개</option>
+                            <option value="3000">3000개</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button id="first-page-btn" class="page-num-btn w-6 h-6 text-xs">«</button>
+                        <button id="prev-page-btn" class="page-num-btn w-6 h-6 text-xs">‹</button>
+                        <div id="page-numbers" class="flex items-center gap-1 mx-1"></div>
+                        <button id="next-page-btn" class="page-num-btn w-6 h-6 text-xs">›</button>
+                        <button id="last-page-btn" class="page-num-btn w-6 h-6 text-xs">»</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="text-editor-section" class="hidden mt-auto bg-white rounded-xl shadow-sm border border-slate-200 flex-col flex-shrink-0 h-[160px] z-10 transition-all">
+                <div class="px-4 py-2 border-b border-slate-200 bg-slate-50 rounded-t-xl flex justify-between items-center flex-shrink-0">
+                    <h3 class="text-xs font-black text-slate-700 flex items-center gap-2">
+                        <span>📝</span> <span id="current-txt-file-name">빠른 메모장 (TXT)</span>
+                    </h3>
+                    <div class="flex gap-2 items-center">
+                        <button id="clear-txt-btn" class="text-[10px] text-slate-500 hover:text-red-500 font-bold px-2 py-1 rounded transition-colors">지우기</button>
+                        <button id="save-txt-btn" class="text-[10px] bg-slate-800 text-white hover:bg-black font-bold px-3 py-1 rounded transition-colors">저장하기</button>
+                        <div class="w-px h-4 bg-slate-300 mx-1"></div>
+                        <button id="close-txt-btn" class="text-[10px] text-slate-500 hover:text-slate-800 font-bold px-2 py-1 rounded transition-colors dark:text-slate-400 dark:hover:text-slate-200">✕ 닫기</button>
+                    </div>
+                </div>
+                <textarea id="memo-textarea" class="flex-1 w-full p-4 text-sm text-slate-700 bg-transparent resize-none focus:outline-none" placeholder="여기에 텍스트를 입력하거나, 탐색기에서 .txt 파일을 클릭해 열어보세요. 엑셀 작업과 병행할 수 있습니다."></textarea>
+            </div>
+
+        </div>
+
+        <div id="html-panel-resizer"></div>
+        <div id="html-panel" class="hidden w-[450px] bg-white rounded-2xl shadow-sm border border-slate-200 flex-col flex-shrink-0 h-full z-10 relative overflow-hidden">
+            <div class="px-3 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center shrink-0 gap-2">
+                <h3 class="text-xs font-black text-slate-700 flex items-center gap-1.5 min-w-0">
+                    <span>🌐</span> <span id="current-html-file-name" class="truncate">웹 도구 뷰어</span>
+                </h3>
+                <div class="flex items-center gap-1 flex-shrink-0">
+                    <button id="hide-html-btn" class="text-[10px] bg-white border border-slate-300 text-slate-500 hover:text-slate-800 font-bold px-2 py-0.5 rounded shadow-sm transition-colors" title="패널 숨기기 (내용 유지)">숨기기</button>
+                    <button id="close-html-btn" class="text-[10px] bg-white border border-slate-300 text-slate-500 hover:text-red-600 font-bold px-2 py-0.5 rounded shadow-sm transition-colors" title="패널 닫기 (내용 초기화)">✕</button>
+                </div>
+            </div>
+            <div class="flex-1 w-full bg-white relative">
+                <iframe id="html-iframe" class="absolute inset-0 w-full h-full border-0 bg-white" allow="clipboard-read; clipboard-write"></iframe>
+            </div>
+        </div>
+        <!-- html-panel 숨김 상태일 때 우측 가장자리 show 버튼 -->
+        <button id="show-html-btn" class="hidden fixed right-0 top-1/2 -translate-y-1/2 bg-white border border-slate-200 shadow-md rounded-l-xl py-4 px-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 z-[100] transition-all" title="웹 도구 패널 열기">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </button>
+
+        <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[500] flex items-center justify-center opacity-0 transition-opacity duration-200">
+            <div class="bg-white rounded-2xl shadow-xl w-[520px] max-w-[95vw] flex flex-col max-h-[90vh]">
+                <div class="px-8 pt-7 pb-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-slate-900 flex items-center gap-2"><span>⚙️</span> 시스템 환경 설정</h3>
+                    <button id="close-settings-btn" class="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 text-lg">✕</button>
+                </div>
+
+
+    </div><!-- close .max-w-[1800px] -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            /* 시트 탭 샘플 */
+            var tabsEl = document.getElementById('sheet-tabs');
+            if (tabsEl) tabsEl.innerHTML = [
+                '<button class="sheet-btn active">Sheet1</button>',
+                '<button class="sheet-btn">Sheet2</button>',
+                '<button class="sheet-btn">Sheet3</button>',
+            ].join('');
+
+            /* 파일 목록 샘플 */
+            var fileList = document.getElementById('workspace-file-list');
+            if (fileList) fileList.innerHTML = [
+                '<div class="workspace-file-item active px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0"></span><span class="truncate font-bold">체납대장_2026.xlsx</span></div>',
+                '<div class="workspace-file-item px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-400 flex-shrink-0"></span><span class="truncate">체납대장_2025.xlsx</span></div>',
+                '<div class="workspace-file-item px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400 flex-shrink-0"></span><span class="truncate">보조자료.csv</span></div>',
+                '<div class="workspace-file-item px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"></span><span class="truncate">메모.txt</span></div>',
+            ].join('');
+
+            /* 웹 도구 목록 샘플 */
+            var htmlList = document.getElementById('html-file-list');
+            if (htmlList) htmlList.innerHTML = '<div class="workspace-file-item px-3 py-2 text-xs rounded-lg cursor-pointer flex items-center gap-2"><span>🌐</span><span class="truncate">조회도구.html</span></div>';
+
+            /* 테이블 헤더 샘플 */
+            var thead = document.getElementById('thead-row');
+            if (thead) {
+                var cols = [
+                    {w:'40px', t:'#'}, {w:'32px', t:'☑'}, {w:'40px', t:'관리'},
+                    {w:'80px', t:'성명'}, {w:'130px', t:'주민번호'}, {w:'110px', t:'체납액'},
+                    {w:'100px', t:'납부일'}, {w:'90px', t:'처리상태'},
+                    {w:'80px', t:'담당자'}, {w:'auto', t:'비고'}
+                ];
+                thead.innerHTML = cols.map(function(c) {
+                    return '<th style="width:'+c.w+';min-width:'+c.w+'" class="px-3 py-2 font-black text-left border-r border-slate-200 whitespace-nowrap">'+c.t+'</th>';
+                }).join('');
+            }
+
+            /* 테이블 데이터 샘플 */
+            var tbody = document.getElementById('tbody-rows');
+            if (tbody) {
+                var rows = [
+                    ['1','□','✏','홍길동','900101-1******','₩ 1,250,000','2026-03-15','처리중','김담당',''],
+                    ['2','□','✏','이순신','800202-1******','₩ 3,400,000','2026-02-28','완료','박담당','납부완료'],
+                    ['3','□','✏','유관순','950505-2******','₩ 890,000','2026-04-01','대기','김담당',''],
+                    ['4','□','✏','강감찬','750312-1******','₩ 5,670,000','-','미처리','이담당','연락불가'],
+                    ['5','□','✏','신사임당','820717-2******','₩ 2,100,000','2026-01-20','완료','박담당',''],
+                    ['6','□','✏','세종대왕','780423-1******','₩ 780,000','2026-03-30','처리중','김담당','분납합의'],
+                    ['7','□','✏','장영실','910908-1******','₩ 4,320,000','-','대기','이담당',''],
+                    ['8','□','✏','이황','851201-1******','₩ 1,560,000','2026-04-10','완료','박담당',''],
+                ];
+                tbody.innerHTML = rows.map(function(r, ri) {
+                    return '<tr class="row-hover-target' + (ri%2===1?' bg-slate-50':'') + '">' +
+                        r.map(function(c, ci) {
+                            var cls = 'px-3 py-2 text-xs border-r border-slate-100 whitespace-nowrap';
+                            return '<td class="'+cls+'">'+c+'</td>';
+                        }).join('') +
+                    '</tr>';
+                }).join('');
+            }
+
+            /* 페이지 정보 */
+            var rowCount = document.getElementById('row-count');
+            if (rowCount) rowCount.textContent = '8';
+            var pageInfo = document.getElementById('page-info');
+            if (pageInfo) pageInfo.textContent = '1 / 1 페이지';
+            var pageNums = document.getElementById('page-numbers');
+            if (pageNums) pageNums.innerHTML = '<button class="page-num-btn active">1</button>';
+
+            /* 선택 카운트 */
+            var selCount = document.getElementById('selected-count');
+            if (selCount) selCount.textContent = '0';
+
+            /* 탐색기 경로 */
+            var bc = document.getElementById('explorer-breadcrumb');
+            if (bc) bc.innerHTML = '<span class="text-[10px] text-slate-500 truncate font-medium">📂 /업무/체납대장</span>';
+
+            /* 버전 배지가 있으면 표시 */
+            var versionBadge = document.querySelector('[data-version-badge]');
+        });
+    </script>
+</body>
+</html>
