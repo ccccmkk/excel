@@ -5,7 +5,9 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.5.2  (2026-05-08) [최신]
+  v2.2.5.3  (2026-05-08) [최신]
+    - [수정] 셀 클릭/화살표 이동 시 포커스 이탈 버그: onfocus setTimeout의 stale 참조 방지, 방향키 커서 위치 충돌 해결
+  v2.2.5.2  (2026-05-08)
     - [변경] 테이블 컬러 테마: 12종 프리셋 클릭 한 번으로 적용 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)
     - [제거] 테이블 셀 개별 색상 피커·워터마크 이미지 (프리셋 방식으로 단순화)
 
@@ -177,7 +179,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.5.2</title>
+    <title>체납대장 분석 워크스테이션 v2.2.5.3</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -740,7 +742,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.2</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.3</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1399,6 +1401,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.5.3</strong>: 셀 클릭/화살표 이동 시 포커스 오작동 버그 수정 (onfocus stale 참조, 방향키 커서 충돌)</p>
                                 <p><strong class="theme-text">v2.2.5.2</strong>: 테이블 컬러 테마 12종 프리셋 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)</p>
                                 <p><strong class="theme-text">v2.2.5.1</strong>: 탭바·툴바 패널 테마 추가, 테이블 테마가 실제 셀 안에 반영</p>
                                 <p><strong class="theme-text">v2.2.5.0</strong>: 테마 프리셋 시스템 — 이름 지정 저장/적용/삭제, .json 파일 공유</p>
@@ -4199,16 +4202,20 @@ function renderColumnVisibilityDropdown() {
                             if (cInfo.style.wrap) { td.style.whiteSpace = "pre-wrap"; td.style.overflow = "visible"; td.style.maxWidth = "300px"; }
                             if (cInfo.formula || (mod && mod.formula)) td.classList.add('has-formula');
                             td.contentEditable = "true";
+                            td._collapseToStart = false; // 화살표 이동 시 방향 힌트
                             td.onfocus = function() {
                                 const curF = mod ? mod.formula : cInfo.formula;
                                 if (curF) this.textContent = '=' + curF;
                                 var el = this;
+                                var collapseToStart = el._collapseToStart;
+                                el._collapseToStart = false;
                                 setTimeout(function() {
+                                    if (document.activeElement !== el) return; // stale 참조 방지
                                     try {
                                         var range = document.createRange();
                                         var sel = window.getSelection();
                                         range.selectNodeContents(el);
-                                        range.collapse(false); // 맨 끝
+                                        range.collapse(collapseToStart); // 방향에 따라 시작/끝
                                         sel.removeAllRanges();
                                         sel.addRange(range);
                                     } catch(e) {}
@@ -4330,14 +4337,9 @@ function renderColumnVisibilityDropdown() {
                                     }
                                 }
                                 if (targetTd) {
+                                    // 방향 힌트 전달: onfocus의 setTimeout이 올바른 위치로 커서 배치
+                                    targetTd._collapseToStart = (goLeft || goUp);
                                     targetTd.focus();
-                                    // 커서를 텍스트 끝/시작에 배치
-                                    try {
-                                        var r2 = document.createRange(); var s2 = window.getSelection();
-                                        r2.selectNodeContents(targetTd);
-                                        if (goLeft || goUp) r2.collapse(true); else r2.collapse(false);
-                                        s2.removeAllRanges(); s2.addRange(r2);
-                                    } catch(ex) {}
                                 }
                             });
                             tr.appendChild(td);
