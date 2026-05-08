@@ -9119,9 +9119,18 @@ function renderColumnVisibilityDropdown() {
                 var preset = JSON.parse(text);
                 if (!preset.panels) { showToast('유효하지 않은 프리셋 파일입니다.'); return; }
                 _ALL_PANELS.forEach(function(panel) {
-                    if (preset.panels[panel]) Object.assign(_panelThemes[panel], preset.panels[panel]);
+                    if (!preset.panels[panel]) return;
+                    if (panel === 'table' && preset.panels[panel].cellStyle) {
+                        Object.assign(_panelThemes.table.cellStyle, preset.panels[panel].cellStyle);
+                        var noCs = Object.assign({}, preset.panels[panel]); delete noCs.cellStyle;
+                        Object.assign(_panelThemes[panel], noCs);
+                    } else {
+                        Object.assign(_panelThemes[panel], preset.panels[panel]);
+                    }
                 });
                 _themeLoadPanelToUI(_panelThemes[_activePanel]);
+                if (_activePanel === 'table') _themeLoadTableCellToUI();
+                _themeMarkActivePreset();
                 _themeRender();
                 showToast('🎨 "' + (preset.name || fileName) + '" 적용됨');
             } catch(e) { console.warn('preset load failed', e); showToast('불러오기 실패: ' + e.message); }
@@ -9164,9 +9173,18 @@ function renderColumnVisibilityDropdown() {
                         var preset = JSON.parse(ev.target.result);
                         if (!preset.panels) { showToast('유효하지 않은 테마 파일입니다.'); return; }
                         _ALL_PANELS.forEach(function(panel) {
-                            if (preset.panels[panel]) Object.assign(_panelThemes[panel], preset.panels[panel]);
+                            if (!preset.panels[panel]) return;
+                            if (panel === 'table' && preset.panels[panel].cellStyle) {
+                                Object.assign(_panelThemes.table.cellStyle, preset.panels[panel].cellStyle);
+                                var noCs = Object.assign({}, preset.panels[panel]); delete noCs.cellStyle;
+                                Object.assign(_panelThemes[panel], noCs);
+                            } else {
+                                Object.assign(_panelThemes[panel], preset.panels[panel]);
+                            }
                         });
                         _themeLoadPanelToUI(_panelThemes[_activePanel]);
+                        if (_activePanel === 'table') _themeLoadTableCellToUI();
+                        _themeMarkActivePreset();
                         _themeRender();
                         showToast('🎨 테마 불러옴: ' + (preset.name || file.name));
                     } catch(e) { showToast('파일 읽기 오류: ' + e.message); }
