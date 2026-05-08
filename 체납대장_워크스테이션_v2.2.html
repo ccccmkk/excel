@@ -6,8 +6,8 @@
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
   v2.2.5.2  (2026-05-08) [최신]
-    - [추가] 테이블 셀 스타일 직접 커스텀: 홀수/짝수 행 색상·불투명도, 헤더 배경/글자색, 셀 글자색, 테두리색, 선택행색
-    - [추가] 테이블 워터마크 이미지: 이미지를 테이블 셀 내부에 직접 배치 (불투명도 조절 가능)
+    - [변경] 테이블 컬러 테마: 12종 프리셋 클릭 한 번으로 적용 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)
+    - [제거] 테이블 셀 개별 색상 피커·워터마크 이미지 (프리셋 방식으로 단순화)
 
   v2.2.5.1  (2026-05-08)
     - [추가] 탭바·툴바 패널 테마 지원 (편집 영역 선택에 탭바/툴바 추가)
@@ -1399,7 +1399,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
-                                <p><strong class="theme-text">v2.2.5.2</strong>: 테이블 셀 스타일 직접 커스텀 (행 색상·헤더·테두리·글자색), 워터마크 이미지 (셀 내부)</p>
+                                <p><strong class="theme-text">v2.2.5.2</strong>: 테이블 컬러 테마 12종 프리셋 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)</p>
                                 <p><strong class="theme-text">v2.2.5.1</strong>: 탭바·툴바 패널 테마 추가, 테이블 테마가 실제 셀 안에 반영</p>
                                 <p><strong class="theme-text">v2.2.5.0</strong>: 테마 프리셋 시스템 — 이름 지정 저장/적용/삭제, .json 파일 공유</p>
                                 <p><strong class="theme-text">v2.2.4.1</strong>: 테마 저장 오류 수정, 패널별 독립 테마 구조 (탐색기/헤더/테이블/전체배경 각각 독립 설정)</p>
@@ -1571,86 +1571,13 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
 
   <div style="border-top:1px solid #f1f5f9;"></div>
 
-  <!-- 테이블 셀 스타일 (테이블 패널 선택 시에만 표시) -->
+  <!-- 테이블 컬러 테마 (테이블 패널 선택 시에만 표시) -->
   <div id="thp-table-cell-section" style="display:none;">
-
-    <!-- 행 배경색 -->
-    <div>
-      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">행 배경색</div>
-      <div style="background:#f8fafc;border-radius:8px;padding:8px;">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;width:30px;">홀수</label>
-          <input type="color" id="thp-ts-odd-bg" value="#ffffff" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-          <input type="range" id="thp-ts-odd-op" min="0" max="100" value="100" oninput="themeApplyTableCell()" style="flex:1;">
-          <span id="thp-ts-odd-op-val" style="font-size:10px;color:#94a3b8;width:32px;">100%</span>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;width:30px;">짝수</label>
-          <input type="color" id="thp-ts-even-bg" value="#f8fafc" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-          <input type="range" id="thp-ts-even-op" min="0" max="100" value="100" oninput="themeApplyTableCell()" style="flex:1;">
-          <span id="thp-ts-even-op-val" style="font-size:10px;color:#94a3b8;width:32px;">100%</span>
-        </div>
-      </div>
+    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">테이블 컬러 테마</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:6px;" id="thp-table-preset-grid">
     </div>
-
-    <!-- 헤더 스타일 -->
-    <div>
-      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">헤더 스타일</div>
-      <div style="background:#f8fafc;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;">배경색</label>
-          <input type="color" id="thp-ts-hdr-bg" value="#f1f5f9" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;">글자색</label>
-          <input type="color" id="thp-ts-hdr-text" value="#334155" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-        </div>
-      </div>
-    </div>
-
-    <!-- 셀 스타일 -->
-    <div>
-      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">셀 스타일</div>
-      <div style="background:#f8fafc;border-radius:8px;padding:8px;display:flex;flex-wrap:wrap;gap:8px;">
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;">글자색</label>
-          <input type="color" id="thp-ts-cell-text" value="#1e293b" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;">테두리</label>
-          <input type="color" id="thp-ts-border" value="#e2e8f0" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label style="font-size:10px;font-weight:700;color:#64748b;">선택행</label>
-          <input type="color" id="thp-ts-selected" value="#dbeafe" oninput="themeApplyTableCell()" style="width:28px;height:22px;border:none;cursor:pointer;border-radius:3px;">
-        </div>
-      </div>
-    </div>
-
-    <!-- 워터마크 이미지 -->
-    <div>
-      <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">워터마크 이미지 (셀 내부)</div>
-      <div style="background:#f8fafc;border-radius:8px;padding:8px;">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-          <button onclick="document.getElementById('thp-wm-input').click()" style="padding:5px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;font-weight:700;color:#475569;cursor:pointer;">📁 이미지 선택</button>
-          <button id="thp-wm-remove" onclick="themeRemoveWatermark()" style="display:none;padding:5px 10px;background:#fef2f2;border:1px solid #fecaca;border-radius:7px;font-size:11px;font-weight:700;color:#dc2626;cursor:pointer;">✕ 제거</button>
-        </div>
-        <input type="file" id="thp-wm-input" accept="image/*" style="display:none;" onchange="themeWatermarkUpload(this)">
-        <div id="thp-wm-controls" style="display:none;">
-          <img id="thp-wm-preview" style="width:100%;height:56px;object-fit:cover;border-radius:6px;border:1px solid #e2e8f0;margin-bottom:6px;">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <label style="font-size:10px;font-weight:700;color:#64748b;white-space:nowrap;">불투명도</label>
-            <input type="range" id="thp-wm-opacity" min="5" max="95" value="30" oninput="themeApplyTableCell()" style="flex:1;">
-            <span id="thp-wm-opacity-val" style="font-size:10px;color:#94a3b8;width:28px;">30%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <button onclick="themeResetTableCell()" style="width:100%;padding:7px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:11px;font-weight:800;cursor:pointer;">↺ 테이블 셀 스타일 초기화</button>
-
-    <div style="border-top:1px solid #f1f5f9;margin-top:4px;"></div>
-    <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider" style="margin-bottom:8px;">아래: 테이블 패널 배경 (이미지/패턴)</div>
+    <button onclick="themeResetTableCell()" style="width:100%;padding:6px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:10px;font-weight:800;cursor:pointer;margin-top:2px;">↺ 기본으로</button>
+    <div style="border-top:1px solid #f1f5f9;margin-top:10px;margin-bottom:8px;"></div>
   </div>
 
   <!-- 테마 프리셋 -->
@@ -8915,80 +8842,73 @@ function renderColumnVisibilityDropdown() {
             if (panelId === 'table') _themeLoadTableCellToUI();
         }
 
+        var _TABLE_PRESETS = [
+            { id:'default',  name:'기본',   hdrBg:'#334155', hdrText:'#f8fafc', oddBg:'#ffffff', evenBg:'#f8fafc', cellText:'#1e293b', border:'#e2e8f0', sel:'#dbeafe' },
+            { id:'blue',     name:'파랑',   hdrBg:'#1d4ed8', hdrText:'#ffffff', oddBg:'#eff6ff', evenBg:'#dbeafe', cellText:'#1e3a5f', border:'#bfdbfe', sel:'#93c5fd' },
+            { id:'sky',      name:'하늘',   hdrBg:'#0284c7', hdrText:'#ffffff', oddBg:'#f0f9ff', evenBg:'#e0f2fe', cellText:'#0c4a6e', border:'#bae6fd', sel:'#7dd3fc' },
+            { id:'teal',     name:'청록',   hdrBg:'#0f766e', hdrText:'#ffffff', oddBg:'#f0fdfa', evenBg:'#ccfbf1', cellText:'#134e4a', border:'#99f6e4', sel:'#5eead4' },
+            { id:'green',    name:'초록',   hdrBg:'#15803d', hdrText:'#ffffff', oddBg:'#f0fdf4', evenBg:'#dcfce7', cellText:'#14532d', border:'#bbf7d0', sel:'#86efac' },
+            { id:'purple',   name:'보라',   hdrBg:'#7e22ce', hdrText:'#ffffff', oddBg:'#faf5ff', evenBg:'#ede9fe', cellText:'#581c87', border:'#ddd6fe', sel:'#c4b5fd' },
+            { id:'rose',     name:'분홍',   hdrBg:'#be185d', hdrText:'#ffffff', oddBg:'#fff1f2', evenBg:'#ffe4e6', cellText:'#881337', border:'#fecdd3', sel:'#fda4af' },
+            { id:'orange',   name:'주황',   hdrBg:'#c2410c', hdrText:'#ffffff', oddBg:'#fff7ed', evenBg:'#ffedd5', cellText:'#7c2d12', border:'#fed7aa', sel:'#fdba74' },
+            { id:'amber',    name:'노랑',   hdrBg:'#b45309', hdrText:'#ffffff', oddBg:'#fffbeb', evenBg:'#fef3c7', cellText:'#78350f', border:'#fde68a', sel:'#fcd34d' },
+            { id:'dark',     name:'다크',   hdrBg:'#0f172a', hdrText:'#94a3b8', oddBg:'#1e293b', evenBg:'#293548', cellText:'#cbd5e1', border:'#334155', sel:'#1d4ed8' },
+            { id:'midnight', name:'미드나잇',hdrBg:'#1e1b4b', hdrText:'#a5b4fc', oddBg:'#1e1b4b', evenBg:'#27244f', cellText:'#c7d2fe', border:'#3730a3', sel:'#4338ca' },
+            { id:'slate',    name:'슬레이트',hdrBg:'#475569', hdrText:'#f1f5f9', oddBg:'#f8fafc', evenBg:'#f1f5f9', cellText:'#334155', border:'#cbd5e1', sel:'#e2e8f0' },
+        ];
+
         function _themeLoadTableCellToUI() {
+            var grid = document.getElementById('thp-table-preset-grid');
+            if (!grid) return;
+            if (grid.children.length > 0) { _themeMarkActivePreset(); return; }
+            _TABLE_PRESETS.forEach(function(pr) {
+                var btn = document.createElement('button');
+                btn.id = 'thp-tpr-' + pr.id;
+                btn.title = pr.name;
+                btn.onclick = function() { themeApplyTablePreset(pr.id); };
+                btn.style.cssText = 'border:2px solid #e2e8f0;border-radius:8px;padding:0;cursor:pointer;overflow:hidden;background:none;';
+                btn.innerHTML =
+                    '<div style="height:12px;background:'+pr.hdrBg+';"></div>' +
+                    '<div style="height:8px;background:'+pr.oddBg+';"></div>' +
+                    '<div style="height:8px;background:'+pr.evenBg+';"></div>' +
+                    '<div style="font-size:8px;font-weight:800;color:#475569;padding:2px 0;text-align:center;background:#fff;">'+pr.name+'</div>';
+                grid.appendChild(btn);
+            });
+            _themeMarkActivePreset();
+        }
+
+        function _themeMarkActivePreset() {
+            var ts = _panelThemes.table.cellStyle || _tableCellStyleDefault();
+            _TABLE_PRESETS.forEach(function(pr) {
+                var btn = document.getElementById('thp-tpr-' + pr.id);
+                if (!btn) return;
+                var active = ts.headerBg === pr.hdrBg && ts.oddRowBg === pr.oddBg;
+                btn.style.borderColor = active ? '#3b82f6' : '#e2e8f0';
+                btn.style.boxShadow   = active ? '0 0 0 1px #3b82f6' : 'none';
+            });
+        }
+
+        function themeApplyTablePreset(id) {
+            var pr = _TABLE_PRESETS.find(function(p) { return p.id === id; });
+            if (!pr) return;
             var tp = _panelThemes.table;
             if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
             var ts = tp.cellStyle;
-            var g = function(id) { return document.getElementById(id); };
-            if (g('thp-ts-odd-bg'))    g('thp-ts-odd-bg').value    = ts.oddRowBg;
-            if (g('thp-ts-odd-op'))    { g('thp-ts-odd-op').value    = ts.oddRowOpacity;  if(g('thp-ts-odd-op-val'))  g('thp-ts-odd-op-val').textContent  = ts.oddRowOpacity+'%'; }
-            if (g('thp-ts-even-bg'))   g('thp-ts-even-bg').value   = ts.evenRowBg;
-            if (g('thp-ts-even-op'))   { g('thp-ts-even-op').value   = ts.evenRowOpacity; if(g('thp-ts-even-op-val')) g('thp-ts-even-op-val').textContent = ts.evenRowOpacity+'%'; }
-            if (g('thp-ts-hdr-bg'))    g('thp-ts-hdr-bg').value    = ts.headerBg;
-            if (g('thp-ts-hdr-text'))  g('thp-ts-hdr-text').value  = ts.headerText;
-            if (g('thp-ts-cell-text')) g('thp-ts-cell-text').value = ts.cellText;
-            if (g('thp-ts-border'))    g('thp-ts-border').value    = ts.borderColor;
-            if (g('thp-ts-selected'))  g('thp-ts-selected').value  = ts.selectedBg;
-            if (g('thp-wm-opacity'))   { g('thp-wm-opacity').value   = ts.watermarkOpacity; if(g('thp-wm-opacity-val')) g('thp-wm-opacity-val').textContent = ts.watermarkOpacity+'%'; }
-            var wmCtrl = g('thp-wm-controls'), wmRemove = g('thp-wm-remove'), wmPrev = g('thp-wm-preview');
-            if (ts.watermarkUrl) {
-                if (wmCtrl)   wmCtrl.style.display   = 'block';
-                if (wmRemove) wmRemove.style.display  = '';
-                if (wmPrev)   wmPrev.src              = ts.watermarkUrl;
-            } else {
-                if (wmCtrl)   wmCtrl.style.display   = 'none';
-                if (wmRemove) wmRemove.style.display  = 'none';
-                if (wmPrev)   wmPrev.src              = '';
-            }
-        }
-
-        function themeApplyTableCell() {
-            var tp = _panelThemes.table;
-            if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
-            var ts = tp.cellStyle;
-            var g = function(id) { return document.getElementById(id); };
-            if (g('thp-ts-odd-bg'))    ts.oddRowBg      = g('thp-ts-odd-bg').value;
-            if (g('thp-ts-odd-op'))    { ts.oddRowOpacity  = parseInt(g('thp-ts-odd-op').value);  if(g('thp-ts-odd-op-val'))  g('thp-ts-odd-op-val').textContent  = ts.oddRowOpacity+'%'; }
-            if (g('thp-ts-even-bg'))   ts.evenRowBg     = g('thp-ts-even-bg').value;
-            if (g('thp-ts-even-op'))   { ts.evenRowOpacity = parseInt(g('thp-ts-even-op').value); if(g('thp-ts-even-op-val')) g('thp-ts-even-op-val').textContent = ts.evenRowOpacity+'%'; }
-            if (g('thp-ts-hdr-bg'))    ts.headerBg      = g('thp-ts-hdr-bg').value;
-            if (g('thp-ts-hdr-text'))  ts.headerText    = g('thp-ts-hdr-text').value;
-            if (g('thp-ts-cell-text')) ts.cellText      = g('thp-ts-cell-text').value;
-            if (g('thp-ts-border'))    ts.borderColor   = g('thp-ts-border').value;
-            if (g('thp-ts-selected'))  ts.selectedBg    = g('thp-ts-selected').value;
-            if (g('thp-wm-opacity'))   { ts.watermarkOpacity = parseInt(g('thp-wm-opacity').value); if(g('thp-wm-opacity-val')) g('thp-wm-opacity-val').textContent = ts.watermarkOpacity+'%'; }
-            _themeRenderTableCell();
-        }
-
-        function themeWatermarkUpload(input) {
-            var file = input.files[0]; if (!file) return;
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                var ts = _panelThemes.table.cellStyle;
-                ts.watermarkUrl = e.target.result;
-                var g = function(id) { return document.getElementById(id); };
-                if (g('thp-wm-preview'))  g('thp-wm-preview').src          = e.target.result;
-                if (g('thp-wm-controls')) g('thp-wm-controls').style.display = 'block';
-                if (g('thp-wm-remove'))   g('thp-wm-remove').style.display   = '';
-                _themeRenderTableCell();
-            };
-            reader.readAsDataURL(file);
-        }
-
-        function themeRemoveWatermark() {
-            var ts = _panelThemes.table.cellStyle; if (!ts) return;
-            ts.watermarkUrl = null;
-            var g = function(id) { return document.getElementById(id); };
-            if (g('thp-wm-preview'))  g('thp-wm-preview').src           = '';
-            if (g('thp-wm-controls')) g('thp-wm-controls').style.display = 'none';
-            if (g('thp-wm-remove'))   g('thp-wm-remove').style.display   = 'none';
-            if (g('thp-wm-input'))    g('thp-wm-input').value            = '';
+            ts.headerBg    = pr.hdrBg;
+            ts.headerText  = pr.hdrText;
+            ts.oddRowBg    = pr.oddBg;
+            ts.evenRowBg   = pr.evenBg;
+            ts.cellText    = pr.cellText;
+            ts.borderColor = pr.border;
+            ts.selectedBg  = pr.sel;
+            ts.oddRowOpacity = 100; ts.evenRowOpacity = 100;
+            _themeMarkActivePreset();
             _themeRenderTableCell();
         }
 
         function themeResetTableCell() {
             _panelThemes.table.cellStyle = _tableCellStyleDefault();
-            _themeLoadTableCellToUI();
+            _themeMarkActivePreset();
             _themeRenderTableCell();
         }
 
