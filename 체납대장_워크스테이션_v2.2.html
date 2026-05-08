@@ -5,7 +5,9 @@
 ================================================================================
   버전 히스토리 (최신순)
 --------------------------------------------------------------------------------
-  v2.2.5.3  (2026-05-08) [최신]
+  v2.2.5.4  (2026-05-08) [최신]
+    - [수정] 필터 후 셀 클릭 시 무한 클릭 루프: removeAllRanges() → Firefox blur 유발 → onfocus 무한반복 버그, sel.collapse()로 교체
+  v2.2.5.3  (2026-05-08)
     - [수정] 셀 클릭/화살표 이동 시 포커스 이탈 버그: onfocus setTimeout의 stale 참조 방지, 방향키 커서 위치 충돌 해결
   v2.2.5.2  (2026-05-08)
     - [변경] 테이블 컬러 테마: 12종 프리셋 클릭 한 번으로 적용 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)
@@ -179,7 +181,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>체납대장 분석 워크스테이션 v2.2.5.3</title>
+    <title>체납대장 분석 워크스테이션 v2.2.5.4</title>
 
     <!-- ── 번들 라이브러리 (완전 오프라인 지원) ── -->
     <script>/* Tailwind CSS v3 */
@@ -742,7 +744,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                 <!-- 타이틀 -->
                 <span class="theme-text text-sm font-black flex-shrink-0">⚡</span>
                 <span class="text-xs font-black text-slate-700 flex-shrink-0 whitespace-nowrap">체납대장</span>
-                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.3</span>
+                <span class="text-[9px] theme-bg px-1.5 py-0.5 rounded font-bold uppercase tracking-widest flex-shrink-0">V2.2.5.4</span>
                 <!-- 구분선 -->
                 <div class="w-px h-4 bg-slate-200 flex-shrink-0"></div>
                 <!-- 현재 파일 -->
@@ -1401,6 +1403,7 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
                             <p class="text-[10px] text-slate-400 font-bold">버전 체계: <span class="text-slate-600">A.B.C.D</span> — A:리메이크 B:시스템변경 C:대규모업데이트 D:기능수정</p>
                             <div class="border-b border-slate-200 pb-1 mb-1">
                                 <p class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">▸ v2.2 — 데이터 시각화</p>
+                                <p><strong class="theme-text">v2.2.5.4</strong>: 필터 후 셀 클릭 무한 루프 버그 수정 (removeAllRanges → sel.collapse 교체, Firefox 호환)</p>
                                 <p><strong class="theme-text">v2.2.5.3</strong>: 셀 클릭/화살표 이동 시 포커스 오작동 버그 수정 (onfocus stale 참조, 방향키 커서 충돌)</p>
                                 <p><strong class="theme-text">v2.2.5.2</strong>: 테이블 컬러 테마 12종 프리셋 (파랑/하늘/청록/초록/보라/분홍/주황/노랑/다크/미드나잇/슬레이트/기본)</p>
                                 <p><strong class="theme-text">v2.2.5.1</strong>: 탭바·툴바 패널 테마 추가, 테이블 테마가 실제 셀 안에 반영</p>
@@ -4212,12 +4215,20 @@ function renderColumnVisibilityDropdown() {
                                 setTimeout(function() {
                                     if (document.activeElement !== el) return; // stale 참조 방지
                                     try {
-                                        var range = document.createRange();
                                         var sel = window.getSelection();
-                                        range.selectNodeContents(el);
-                                        range.collapse(collapseToStart); // 방향에 따라 시작/끝
-                                        sel.removeAllRanges();
-                                        sel.addRange(range);
+                                        // removeAllRanges()는 Firefox에서 contenteditable blur를 유발해
+                                        // onfocus→blur→onfocus 무한 루프를 발생시킴.
+                                        // sel.collapse()는 blur 이벤트 없이 커서만 이동하므로 안전.
+                                        if (collapseToStart) {
+                                            sel.collapse(el, 0);
+                                        } else {
+                                            var lastChild = el.lastChild;
+                                            if (lastChild && lastChild.nodeType === 3) {
+                                                sel.collapse(lastChild, lastChild.length);
+                                            } else {
+                                                sel.collapse(el, el.childNodes.length);
+                                            }
+                                        }
                                     } catch(e) {}
                                 }, 0);
                             };
