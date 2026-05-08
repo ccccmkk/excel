@@ -1487,10 +1487,11 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
     </div>
   </div>
 
-  <div style="border-top:1px solid #f1f5f9;"></div>
-
+  <!-- 이미지+패턴 섹션 (테이블 패널 시 숨김) -->
+  <div id="thp-bg-section">
+  <div style="border-top:1px solid #f1f5f9;margin-bottom:12px;"></div>
   <!-- 이미지 섹션 -->
-  <div>
+  <div id="thp-img-section">
     <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">배경 이미지</div>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
       <button onclick="document.getElementById('thp-img-input').click()" style="padding:5px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;font-weight:700;color:#475569;cursor:pointer;">📁 이미지 선택</button>
@@ -1539,7 +1540,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
   <div style="border-top:1px solid #f1f5f9;"></div>
 
   <!-- 패턴 섹션 -->
-  <div>
+  <div id="thp-pat-section">
+
     <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">패턴</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
       <button data-pat="none"     onclick="themeSetPattern('none')"     id="thp-none"     style="padding:5px 10px;border-radius:7px;font-size:11px;font-weight:800;border:2px solid #3b82f6;background:#eff6ff;color:#3b82f6;cursor:pointer;">없음</button>
@@ -1567,7 +1569,8 @@ var e,t;e=this,t=function(){"use strict";function e(e,t){var n=Object.keys(e);if
         <span id="thp-opacity-val" style="font-size:10px;color:#94a3b8;width:28px;">40%</span>
       </div>
     </div>
-  </div>
+  </div><!-- /thp-pat-section -->
+  </div><!-- /thp-bg-section -->
 
   <div style="border-top:1px solid #f1f5f9;"></div>
 
@@ -8764,22 +8767,11 @@ function renderColumnVisibilityDropdown() {
             var tp = _panelThemes.table;
             if (!tp.cellStyle) tp.cellStyle = _tableCellStyleDefault();
             var ts = tp.cellStyle;
-            var hasTableBg = tp.pattern !== 'none' || !!tp.imageDataUrl;
 
-            // 행 불투명도: 배경 있을 때 기본값(100%)이면 반투명 유지
-            var oddOp  = ts.oddRowOpacity  === 100 && hasTableBg ? 0.82 : ts.oddRowOpacity  / 100;
-            var evenOp = ts.evenRowOpacity === 100 && hasTableBg ? 0.65 : ts.evenRowOpacity / 100;
-            var hdrOp  = hasTableBg ? 0.80 : 1;
-
-            var oddBg    = _themeHex2rgba(ts.oddRowBg,  oddOp);
-            var evenBg   = _themeHex2rgba(ts.evenRowBg, evenOp);
-            var headerBg = _themeHex2rgba(ts.headerBg,  hdrOp);
-
-            // cellStyle가 모두 기본값이고 배경도 없으면 CSS 제거
+            // 기본값이면 CSS 제거
             var def = _tableCellStyleDefault();
-            var isDefault = !hasTableBg && !ts.watermarkUrl &&
-                ts.oddRowBg === def.oddRowBg && ts.oddRowOpacity === def.oddRowOpacity &&
-                ts.evenRowBg === def.evenRowBg && ts.evenRowOpacity === def.evenRowOpacity &&
+            var isDefault =
+                ts.oddRowBg === def.oddRowBg && ts.evenRowBg === def.evenRowBg &&
                 ts.headerBg === def.headerBg && ts.headerText === def.headerText &&
                 ts.cellText === def.cellText && ts.borderColor === def.borderColor &&
                 ts.selectedBg === def.selectedBg;
@@ -8788,24 +8780,12 @@ function renderColumnVisibilityDropdown() {
             if (isDefault) { if (sEl) sEl.remove(); return; }
             if (!sEl) { sEl = document.createElement('style'); sEl.id = 'theme-table-rows-css'; document.head.appendChild(sEl); }
 
-            var wmCss = '';
-            if (ts.watermarkUrl) {
-                var wA = (100 - ts.watermarkOpacity) / 100;
-                wmCss = '#main-content .tabulator-tableHolder{' +
-                    'background-image:linear-gradient(rgba(255,255,255,'+wA+'),rgba(255,255,255,'+wA+')),url("'+ts.watermarkUrl+'");' +
-                    'background-size:auto,cover;background-position:center;background-repeat:no-repeat,no-repeat;background-attachment:local,local;}';
-            } else {
-                wmCss = '#main-content .tabulator-tableHolder{background-image:none;}';
-            }
-
-            sEl.textContent = wmCss +
-                '#main-content .tabulator-row{background-color:'+oddBg+'!important;color:'+ts.cellText+'!important}' +
-                '#main-content .tabulator-row.tabulator-row-even{background-color:'+evenBg+'!important}' +
-                '#main-content .tabulator .tabulator-header{background-color:'+headerBg+'!important}' +
-                '#main-content .tabulator .tabulator-col{background:'+headerBg+'!important;color:'+ts.headerText+'!important}' +
-                '#main-content .tabulator-col .tabulator-col-content .tabulator-col-title{color:'+ts.headerText+'!important}' +
-                '#main-content .tabulator-cell{border-right-color:'+ts.borderColor+'!important}' +
-                '#main-content .tabulator-row.tabulator-selected{background-color:'+ts.selectedBg+'!important}';
+            // 실제 테이블 구조: #main-table > thead(#thead-row th) / tbody(#tbody-rows tr td)
+            sEl.textContent =
+                '#main-table thead tr#thead-row th{background-color:'+ts.headerBg+'!important;color:'+ts.headerText+'!important}' +
+                '#tbody-rows tr{background-color:'+ts.oddRowBg+'!important;color:'+ts.cellText+'!important}' +
+                '#tbody-rows tr:nth-child(even){background-color:'+ts.evenRowBg+'!important}' +
+                '#tbody-rows tr td{border-color:'+ts.borderColor+'!important;color:'+ts.cellText+'!important}';
         }
 
         function _themeLoadPanelToUI(p) {
@@ -8839,6 +8819,9 @@ function renderColumnVisibilityDropdown() {
             _themeLoadPanelToUI(_panelThemes[_activePanel]);
             var tcs = document.getElementById('thp-table-cell-section');
             if (tcs) tcs.style.display = panelId === 'table' ? 'block' : 'none';
+            // 테이블 패널: 이미지/패턴 섹션 숨김 (컬러 테마만 사용)
+            var bgSec = document.getElementById('thp-bg-section');
+            if (bgSec) bgSec.style.display = panelId === 'table' ? 'none' : '';
             if (panelId === 'table') _themeLoadTableCellToUI();
         }
 
